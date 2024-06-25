@@ -19,6 +19,12 @@ from openjd.adaptor_runtime.application_ipc import ActionsQueue
 from openjd.adaptor_runtime.application_ipc import AdaptorServer
 
 _logger = logging.getLogger(__name__)
+# log_path = os.path.join(os.environ.get("USERPROFILE"), ".deadline", "logs", "aftereffects", "adaptor.log")
+# if not os.path.exists(os.path.dirname(log_path)):
+#     os.makedirs(os.path.dirname(log_path))
+# fh = logging.FileHandler(log_path)
+# fh.setLevel(logging.DEBUG)
+# _logger.addHandler(fh)
 
 
 class AENotRunningError(Exception):
@@ -169,7 +175,7 @@ class AEAdaptor(Adaptor[AdaptorConfiguration]):
         :return type: list[RegexCallback]
         """
         callback_list = []
-        completed_regexes = [re.compile("AEClient: Finished Rendering Frame [0-9]+")]
+        completed_regexes = [re.compile("AEClient: Finished Rendering Frame [0-9]+.*")]
         progress_regexes = [re.compile("\\[PROGRESS\\] ([0-9]+) percent")]
         error_regexes = [re.compile(".*Exception:.*|.*Error:.*|.*Warning.*")]
 
@@ -189,6 +195,7 @@ class AEAdaptor(Adaptor[AdaptorConfiguration]):
         the message
         :type match: (re.Match)
         """
+        _logger.info("Handle complete")
         self._ae_is_rendering = False
         self.update_status(progress=100)
 
@@ -354,6 +361,8 @@ class AEAdaptor(Adaptor[AdaptorConfiguration]):
             raise RuntimeError(
                 f"After Effects exited early and did not render successfully, please check render logs. Exit code {exit_code}"
             )
+        print("Finished the \"start_render\" command.")
+        _logger.info("Finished the \"start_render\" command.")
 
     def on_stop(self) -> None:
         """

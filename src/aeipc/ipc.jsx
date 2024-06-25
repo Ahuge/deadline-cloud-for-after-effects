@@ -253,7 +253,9 @@ function _ipcModule() {
         var outputPatternData = data["output_pattern"];
         var outputFormatData = data["output_format"];
         var comp = null;
+        _log.info("Starting 'start_render'")
         var numComps = app.project.rootFolder.numItems;
+        _log.info("  numComps: " + numComps);
         // Loop through each item in the project root folder
         for (var i = 1; i <= numComps; i++) 
         {
@@ -269,18 +271,22 @@ function _ipcModule() {
                 }
             }
         }
+        _log.info("Comp: " + comp.name);
         var RQI = null;
         for (var j = 1; j <= app.project.renderQueue.numItems; j++)
         {
+            _log.info("Does " + compName + " == " + app.project.renderQueue.item(j).comp.name + " ?");
             if(compName == app.project.renderQueue.item(j).comp.name)
             {
                 var RQI_to_copy = app.project.renderQueue.item(j);
                 RQI_to_copy.render = false;
             }
             else {
+                _log.info("Setting " + app.project.renderQueue.item(j).comp.name + " to not render");
                 app.project.renderQueue.item(j).render = false;
             }
         }
+        _log.info("renderQueue.numItems: " + app.project.renderQueue.numItems);
         var RQI = RQI_to_copy.duplicate();
         // var renderQueueItem = app.project.renderQueue.item(1).outputModule(1).getSettings(); // Assuming you want information for the first render queue item
         // alert(renderQueueItem["Format"]);
@@ -299,8 +305,11 @@ function _ipcModule() {
         var end = (frame + 1) / frameRate; 
         var duration = end - start
 
+        _log.info("About to setWorkArea");
         setWorkArea(RQI.comp, start, duration, conn);
+        _log.info("About to renderQueue.render()");
         app.project.renderQueue.render();
+        _log.info("Completed frame " + frame);
         RQI.remove();
     
         conn.writeln("AEClient: Finished Rendering Frame " + frame);
@@ -320,4 +329,4 @@ function _ipcModule() {
 
 ipc = _ipcModule()
 
-ipc.listen()
+ipc.listenBlocking()
