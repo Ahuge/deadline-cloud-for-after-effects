@@ -2,11 +2,14 @@ import os
 import shutil
 import ctypes
 from ctypes import wintypes
+import logging
 
 try:
     import winreg
 except ImportError:
     import _winreg as winreg
+
+_logger = logging.getLogger(__name__)
 
 user32 = ctypes.WinDLL("user32", use_last_error=True)
 gdi32 = ctypes.WinDLL("gdi32", use_last_error=True)
@@ -24,6 +27,11 @@ INSTALL_SCOPE_SYSTEM = "SYSTEM"
 
 FONT_LOCATION_SYSTEM = os.path.join(os.environ.get("SystemRoot"), "Fonts")
 FONT_LOCATION_USER = os.path.join(os.environ.get("LocalAppData"), "Microsoft", "Windows", "Fonts")
+
+# Check if the Fonts folder exists, create it if it doesn't
+if not os.path.exists(FONT_LOCATION_USER):
+    _logger.info("Creating User Fonts folder: %s" % FONT_LOCATION_USER)
+    os.makedirs(FONT_LOCATION_USER)
 
 
 def install_font(src_path, scope=INSTALL_SCOPE_USER):
