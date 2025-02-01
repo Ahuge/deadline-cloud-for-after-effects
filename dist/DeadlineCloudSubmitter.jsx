@@ -1540,25 +1540,31 @@ function SubmitSelection(selection, framesPerTask) {
             sanitizedOutputFolder
         );
         var assetReferencesOutDir = bundlePath + "/asset_references.json";
-        writeFile(assetReferencesOutDir, JSON.stringify(jobAttachmentsContents));
+        writeFile(assetReferencesOutDir, JSON.stringify(jobAttachmentsContents, null, 4));
     }
 
     /**
      * Generates parameter_values json file
      **/
     function generateParameterValues(bundlePath, outputFolder, outputFileName, isImageSeq) {
-        var parametersContents = parameterValues(
-            renderQueueIndex,
-            app.project.file.fsName,
-            outputFolder,
-            outputFileName,
-            isImageSeq,
-            startFrame,
-            endFrame,
-            framesPerTask
-        );
         var parametersOutDir = bundlePath + "/parameter_values.json";
-        writeFile(parametersOutDir, JSON.stringify(parametersContents));
+        writeFile(
+            parametersOutDir,
+            JSON.stringify(
+                parameterValues(
+                    renderQueueIndex,
+                    app.project.file.fsName,
+                    outputFolder,
+                    outputFileName,
+                    isImageSeq,
+                    startFrame,
+                    endFrame,
+                    framesPerTask
+                ),
+                null,
+                4,
+            )
+        );
     }
 
     /**
@@ -2444,7 +2450,7 @@ if (isSecurityPrefSet()) {
     errorText2.text = [
         "In order for the Deadline Cloud submitter to execute, you need to update your script permissions to allow script networking and file access. To do this, follow the instructions below",
         "  1)  For Windows User: Select Edit > Preferences > Scripting & Expressions > select Allow Scripts To Write Files And Access Network",
-        "        For macOS User: Select After Effects > Settings > Scripting & Expressions > select Allow Scripts To Write Files And Access Network",
+        "       For macOS User: Select After Effects > Settings > Scripting & Expressions > select Allow Scripts To Write Files And Access Network",
         '  2)  Check "Allow Scripts to Write Files and Access Network"',
         '  3)  (Optional) To disable warnings every time you submit a job with the submitter, you can deselect "Warn User When Executing Files"',
         "  4)  Close this window and try again.",
