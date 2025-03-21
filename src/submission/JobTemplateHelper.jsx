@@ -10,7 +10,9 @@ function parameterValues(
     isImageSeq,
     startFrame,
     endFrame,
-    chunkSize
+    chunkSize,
+    multiFrameRendering,
+    maxCpuUsagePercentage
 ) {
     var parameterValuesList = [{
             name: "deadline:targetTaskRunStatus",
@@ -47,8 +49,18 @@ function parameterValues(
         {
             name: "Frames",
             value: startFrame.toString() + "-" + endFrame.toString(),
-        }
+        },
+        {
+            name: "MultiFrameRendering",
+            value: multiFrameRendering,
+        },
     ];
+    if (maxCpuUsagePercentage) {
+        parameterValuesList.push({
+            name: "MaxCpuUsagePercentage",
+            value: maxCpuUsagePercentage,
+        })
+    }
     if (isImageSeq) {
         parameterValuesList.push({
             name: "ChunkSize",
