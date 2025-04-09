@@ -100,20 +100,15 @@ Then reopen the submitter panel from the application to test your change.
 Default MacOS InstallBuilder path: `"/Applications/InstallBuilder Enterprise <major>.<minor>.<patch>"`
 Default Windows InstallBuilder path: `"C:\\Program Files\\InstallBuilder Enterprise <major>.<minor>.<patch>\\" `
 
-### Build the package
-
-```bash
-hatch run build
-```
 
 ### Build the installer
 
 ```bash
-hatch run build-installer --local-dev-build --platform <PLATFORM> [--install-builder-location <LOCATION> --output-dir <DIR>]
+hatch run installer:build-installer --local-dev-build --platform <PLATFORM> [--install-builder-location <LOCATION> --output-dir <DIR>]
 ```
 Use the default locations listed above under Preqrequisites as guidance. For Platform, your options are Windows or MacOS. For local dev, remove `--output-dir` and specify `--local-dev` flag instead.
 
-Run `hatch run build-installer -h` to see the full list of arguments.
+Run `hatch run installer:build-installer -h` to see the full list of arguments.
 
 ...
 
@@ -130,16 +125,11 @@ hatch run lint-check # Runs formatting without modifying code
 hatch run lint # Runs formatting and modifies code
 ```
 
-
 To run unit tests, run the following
 ```bash
 hatch run test
 ```
-
-If you added new files and see the copyright headers test failing, run linting
-```bash
-hatch run lint
-```
+Note: if you added new files and see the copyright headers test failing, run linting
 
 To test installer, you need admin permission to run the tests correctly.
 
