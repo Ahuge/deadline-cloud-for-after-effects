@@ -30,6 +30,48 @@ if (!app.settings.haveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MA
 }
 
 
+function UiSettingsState() {
+    this.settings = {}
+}
+function UiSettingsStore(name) {
+    this.name = name;
+    this._framesPerTask = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK);;
+    this._multiFrameRendering = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING);
+    this._maxCpuUsagePercentage = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE);
+
+    this.framesPerTask = function () {
+        return this._framesPerTask
+    }
+    this.setFramesPerTask = function (value) {
+        logger.warning("(" + this.name + ") Setting framesPerTask to " + value)
+        this._framesPerTask = value
+    }
+
+    this.multiFrameRendering = function () {
+        return this._multiFrameRendering
+    }
+    this.setMultiFrameRendering = function (value) {
+        logger.warning("(" + this.name + ") Setting multiFrameRendering to " + value)
+        this._multiFrameRendering = value
+    }
+
+    this.maxCpuUsagePercentage = function () {
+        return this._maxCpuUsagePercentage
+    }
+    this.setMaxCpuUsagePercentage = function (value) {
+        logger.warning("(" + this.name + ") Setting maxCpuUsagePercentage to " + value)
+        this._maxCpuUsagePercentage = value
+    }
+}
+
+UiSettingsState.prototype.get = function(compId) {
+    if (!this.settings[compId]) {
+        this.settings[compId] = new UiSettingsStore(compId)
+    }
+    return this.settings[compId]
+}
+
+
 /**
  * Builds the Script UI for the Deadline Cloud Submitter
  **/
@@ -37,6 +79,10 @@ function buildUI(thisObj) {
     var submitterPanel = (thisObj instanceof Panel) ? thisObj : new Window("palette", "Submit to AWS Deadline Cloud", undefined, {
         resizable: true
     });
+
+    // This uiSettingsState allows us to have "per comp" settings in the UI before we submit the scene.
+    //  This is not persisted to disk (maybe it should be?) because the disk settings appear to be using Adobe AE settings and I don't know if I want to polute those.
+    var uiSettingsState = new UiSettingsState()
 
     var root = submitterPanel.add("group");
     root.orientation = "column";
@@ -87,7 +133,8 @@ function buildUI(thisObj) {
     const framesPerTaskTextBox = framesPerTaskGroup.add("edittext", undefined, "");
     framesPerTaskTextBox.alignment = ['fill', 'top'];
     framesPerTaskTextBox.helpTip = framesPerTaskLabel.helpTip;
-    framesPerTaskTextBox.onChange = function() {
+    function onFramesPerTaskChanged() {
+        logger.warning("onFramesPerTaskChanged triggered");
         const newFramesPerTaskValue = Math.abs(parseInt(framesPerTaskTextBox.text));
         if (isNaN(newFramesPerTaskValue)) {
             framesPerTaskTextBox.text = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK);
@@ -99,7 +146,13 @@ function buildUI(thisObj) {
             framesPerTaskTextBox.text = newFramesPerTaskValue;
         }
         app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK, framesPerTaskTextBox.text);
+        for (var s=0;s<list.selection.length;s++) {
+            var selectionItem = list.selection[s];
+            logger.warning("Setting " + selectionItem.compId + " framesPerTask to " + framesPerTaskTextBox.text);
+            uiSettingsState.get(selectionItem.compId).setFramesPerTask(framesPerTaskTextBox.text)
+        }
     }
+    framesPerTaskTextBox.onChange = onFramesPerTaskChanged;
 
     // Multi-frame rendering (MFR) GUI
     const mfrGroup = settingsGroup.add("group", undefined, "");
@@ -120,12 +173,13 @@ function buildUI(thisObj) {
     maxCpuUsagePercentageLabel.alignment = ['left', 'center'];
     maxCpuUsagePercentageLabel.helpTip = "If multi-frame rendering is enabled, set the maximum CPU percentage power to use during multi-frame rendering";
 
-    const maxCpuUsagePercentageTextBox = maxCpuUsagePercentageGroup.add("edittext", undefined, "N/A");
+    const maxCpuUsagePercentageTextBox = maxCpuUsagePercentageGroup.add("edittext", undefined, "100");
     maxCpuUsagePercentageTextBox.alignment = ['fill', 'top'];
     maxCpuUsagePercentageTextBox.helpTip = maxCpuUsagePercentageLabel.helpTip;
     maxCpuUsagePercentageTextBox.enabled = mfrCheckBox.value;
     maxCpuUsagePercentageTextBox.text = maxCpuUsagePercentageTextBox.enabled ? app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE) : "N/A";
-    maxCpuUsagePercentageTextBox.onChange = function() {
+    function onMaxCpuUsagePercentageChanged() {
+        logger.warning("onMaxCpuUsagePercentageChanged triggered");
         const maxCpuUsagePercentageValue = Math.abs(parseInt(maxCpuUsagePercentageTextBox.text));
         if (isNaN(maxCpuUsagePercentageValue) || maxCpuUsagePercentageValue > 100) {
             maxCpuUsagePercentageTextBox.text = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE);
@@ -135,19 +189,49 @@ function buildUI(thisObj) {
             maxCpuUsagePercentageTextBox.text = maxCpuUsagePercentageValue;
         }
         app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE, maxCpuUsagePercentageTextBox.text);
+        for (var s=0;s<list.selection.length;s++) {
+            var selectionItem = list.selection[s];
+            logger.warning("Setting " + selectionItem.compId + " maxCpuUsagePercentage to " + maxCpuUsagePercentageTextBox.text);
+            uiSettingsState.get(selectionItem.compId).setMaxCpuUsagePercentage(maxCpuUsagePercentageTextBox.text)
+        }
     }
+    maxCpuUsagePercentageTextBox.onChange = onMaxCpuUsagePercentageChanged
 
-    // Disable max CPU percentage textbox when multi frame rendering is disabled
-    mfrCheckBox.onClick = function() {
+    function onMfrCheckBoxClicked() {
+        logger.warning("onMfrCheckboxClicked triggered");
         const isMfrChecked = mfrCheckBox.value;
+        var settingsStateValue = false
         if (!isMfrChecked) {
             maxCpuUsagePercentageTextBox.text = "N/A";
             app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING, "false");
+            settingsStateValue = false
         } else {
             maxCpuUsagePercentageTextBox.text = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE);
             app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING, "true");
+            settingsStateValue = true
         }
+
+        logger.warning("Setting maxCpuUsagePercentageTextBox.enabled to " + isMfrChecked);
         maxCpuUsagePercentageTextBox.enabled = isMfrChecked;
+        for (var s=0;s<list.selection.length;s++) {
+            var selectionItem = list.selection[s];
+            logger.warning("Setting " + selectionItem.compId + " multiFrameRendering to " + settingsStateValue);
+            uiSettingsState.get(selectionItem.compId).setMultiFrameRendering(settingsStateValue)
+        }
+    }
+    // Disable max CPU percentage textbox when multi frame rendering is disabled
+    mfrCheckBox.onClick = onMfrCheckBoxClicked
+
+    function isRenderQueueItemImageOutput(renderQueueItem) {
+        if (renderQueueItem.numOutputModules == 1) {
+            var outputModule = renderQueueItem.outputModule(1).file;
+            if (outputModule != null) {
+                var outputFileNameNoRegex = getFileNameNoRegex(outputModule.name);
+                var extension = getFileExtension(outputFileNameNoRegex);
+                return isImageOutput(extension);
+            }
+        }
+        return false
     }
 
     // If an image sequence was selected, enable frames per task textbox. Otherwise disable it.
@@ -155,21 +239,48 @@ function buildUI(thisObj) {
         if (selection == null) {
             return false;
         }
-        const renderQueueIndex = selection.renderQueueIndex;
-        const rqi = app.project.renderQueue.item(renderQueueIndex);
-        // Currently we only support one output modele. We have sufficient error handling
-        // after submit button is clicked, so this is a sufficient for now
-        if (rqi.numOutputModules == 1) {
-            var outputModule = rqi.outputModule(1).file;
-            if (outputModule != null) {
-                const outputFileNameNoRegex = getFileNameNoRegex(outputModule.name);
-                const extension = getFileExtension(outputFileNameNoRegex);
-                return isImageOutput(extension);
+        for (var i=0;i<selection.length;i++) {
+            var selectionItem = selection[i];
+            var renderQueueIndex = selectionItem.renderQueueIndex;
+            var rqi = app.project.renderQueue.item(renderQueueIndex);
+            if (rqi.numOutputModules == 1) {
+                var outputModule = rqi.outputModule(1).file;
+                if (outputModule != null) {
+                    var outputFileNameNoRegex = getFileNameNoRegex(outputModule.name);
+                    var extension = getFileExtension(outputFileNameNoRegex);
+                    var imageOutput = isImageOutput(extension);
+                    if (imageOutput === false) {
+                        return false
+                    }
+                }
             }
         }
         // Default to true so that we don't block any customers in case we can't
         // sufficiently verify whether they're submitting an image sequence or not
         return true;
+    }
+
+    // Check for duplicate names
+    function checkForInvalidCompositionNames(selection) {
+        var names = [];
+        var duplicateNames = [];
+        for (var i=0;i<selection.length;i++) {
+            var selectionItem = selection[i];
+            var renderQueueItem = app.project.renderQueue.item(selectionItem.renderQueueIndex);
+            var compName = dcUtil.removeIllegalCharacters(renderQueueItem.comp.name);
+            if (names.indexOf(compName) !== -1) {
+                duplicateNames.push(renderQueueItem.comp.name);
+            }
+        }
+        if (duplicateNames.length !== 0) {
+            var message = "Selected submission items must have unique names. Found (" + duplicateNames.length * 2 + ") compositions with the same name: "
+            for (var i=0;i<duplicateNames.length;i++) {
+                message = message + "\n\t" + duplicateNames[i];
+            }
+            adcAlert(message, true)
+            return true
+        }
+        return false
     }
 
     var submitButton = controlsGroup.add("button", undefined, "Submit");
@@ -180,7 +291,12 @@ function buildUI(thisObj) {
             if (mfrCheckBox.value) {
                 maxCpuUsagePercentage = parseInt(maxCpuUsagePercentageTextBox.text)
             }
-            SubmitSelection(list.selection, parseInt(framesPerTaskTextBox.text), multiFrameRendering, maxCpuUsagePercentage);
+
+            if (checkForInvalidCompositionNames(list.selection)) {
+                return
+            }
+
+            SubmitSelection(list.selection, uiSettingsState, parseInt(framesPerTaskTextBox.text), multiFrameRendering, maxCpuUsagePercentage);
             list.selection = null;
         }
     }
@@ -190,6 +306,7 @@ function buildUI(thisObj) {
     function updateList() {
         var bounds = list == null ? undefined : list.bounds;
         var newList = listGroup.add("listbox", bounds, "", {
+            multiselect: true,
             numberOfColumns: 4,
             showHeaders: true,
             columnTitles: ['#', 'Name', 'Frames', 'Output Path'],
@@ -208,6 +325,9 @@ function buildUI(thisObj) {
             var item = newList.add('item', i.toString());
             item.renderQueueIndex = i;
             item.compId = rqi.comp.id;
+
+            logger.warning("Creating a new uiSettingsState for " + item.compId)
+            uiSettingsState.get(item.compId)
             item.subItems[0].text = rqi.comp.name;
             var renderSettings = rqi.getSettings(GetSettingsFormat.STRING_SETTABLE);
             var startFrame = Number(timeToFrames(Number(renderSettings["Time Span Start"]), Number(renderSettings["Use this frame rate"])));
@@ -227,34 +347,71 @@ function buildUI(thisObj) {
             listGroup.remove(list);
         }
         list = newList;
-        list.onChange = function() {
-            framesPerTaskTextBox.enabled = isFramesPerTaskEnabled(list.selection);
-            // If no selection, update list and set text box blank. But if there's a selection
-            // and frames per task is disabled, fill textbox with default start-end frame to show that
-            // no image chunking will occur. But if there is a selection and frames per task is enabled,
-            // set it to their default value.
-            if (list.selection == null) {
+
+        function onSelectionChange() {
+            logger.warning("Starting onSelectionChange");
+            var selection = list.selection;
+            if (selection == null) {
+                logger.warning("Selection is null. Clearing text box");
                 updateList();
                 framesPerTaskTextBox.text = "";
-            } else if (!framesPerTaskTextBox.enabled) {
-                framesPerTaskTextBox.text = list.selection.subItems[1].text;
-            } else {
-                framesPerTaskTextBox.text = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK);
+                return;
             }
-
-            submitButton.enabled = list.selection != null;
+            submitButton.enabled = true;
             submitButton.active = false;
             submitButton.active = true;
-        };
+
+            // Disable everything
+            framesPerTaskTextBox.enabled = false
+            mfrCheckBox.enabled = false
+            maxCpuUsagePercentageTextBox.enabled = false
+
+            if (selection.length !== 1) {
+                logger.warning("Selection is not 1. Disabling everything");
+                return
+            }
+            var selectionItem = selection[0]
+            logger.warning("Selected Comp is: " + app.project.renderQueue.item(selectionItem.renderQueueIndex).comp.name);
+            var imageOutput = isRenderQueueItemImageOutput(app.project.renderQueue.item(selectionItem.renderQueueIndex))
+            logger.warning("Selection is imageOutput: " + imageOutput);
+            framesPerTaskTextBox.enabled = imageOutput
+            mfrCheckBox.enabled = true
+            maxCpuUsagePercentageTextBox.enabled = true
+
+            logger.warning("Selection is framesPerTaskTextBox: " + selectionItem.subItems[1].text);
+            framesPerTaskTextBox.text = selectionItem.subItems[1].text
+
+            var settings = uiSettingsState.get(selectionItem.compId)
+            if (settings === undefined) {
+                logger.warning("Could not find settings for : " + selectionItem.compId);
+                logger.warning("(Settings) " + uiSettingsState);
+                return
+            }
+            logger.warning("Found settings for: " + selectionItem.compId);
+            logger.warning("    framesPerTask: " + settings.framesPerTask());
+            logger.warning("    multiFrameRendering: " + settings.multiFrameRendering());
+            logger.warning("    maxCpuUsagePercentage: " + settings.maxCpuUsagePercentage());
+
+            framesPerTaskTextBox.text = settings.framesPerTask() || selectionItem.subItems[1].text
+            mfrCheckBox.value = settings.multiFrameRendering()
+            maxCpuUsagePercentageTextBox.value = settings.maxCpuUsagePercentage()
+
+            maxCpuUsagePercentageTextBox.enabled = mfrCheckBox.value
+        }
+
+        list.onChange = onSelectionChange;
         list.selection = null;
     }
 
     updateList();
-    framesPerTaskTextBox.enabled = isFramesPerTaskEnabled(list.selection);
-
-    refreshButton.onClick = function() {
-        updateList();
+    if (list.selection != null && list.selection.length === 1) {
+        var selectionItem = list.selection[0]
+        var renderQueueItem = app.project.renderQueue.item(selectionItem.renderQueueIndex)
+        framesPerTaskTextBox.enabled = isRenderQueueItemImageOutput(renderQueueItem)
     }
+    // isFramesPerTaskEnabled(list.selection);
+
+    refreshButton.onClick = updateList;
 
     submitterPanel.layout.layout(true);
 
