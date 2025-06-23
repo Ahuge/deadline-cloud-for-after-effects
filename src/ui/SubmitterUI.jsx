@@ -183,26 +183,28 @@ function buildUI(thisObj) {
         return false
     }
 
-    // If an image sequence was selected, enable frames per task textbox. Otherwise disable it.
-    function isFramesPerTaskEnabled(selection) {
-        if (selection == null) {
-            return false;
-        }
-        const renderQueueIndex = selection.renderQueueIndex;
-        const rqi = app.project.renderQueue.item(renderQueueIndex);
-        // Currently we only support one output modele. We have sufficient error handling
-        // after submit button is clicked, so this is a sufficient for now
-        if (rqi.numOutputModules == 1) {
-            var outputModule = rqi.outputModule(1).file;
-            if (outputModule != null) {
-                const outputFileNameNoRegex = getFileNameNoRegex(outputModule.name);
-                const extension = getFileExtension(outputFileNameNoRegex);
-                return isImageOutput(extension);
+    // Check for duplicate names
+    function checkForInvalidCompositionNames(selection) {
+        var names = [];
+        var duplicateNames = [];
+        for (var i=0;i<selection.length;i++) {
+            var selectionItem = selection[i];
+            var renderQueueItem = app.project.renderQueue.item(selectionItem.renderQueueIndex);
+            var compName = dcUtil.removeIllegalCharacters(renderQueueItem.comp.name);
+            if (names.indexOf(compName) !== -1) {
+                duplicateNames.push(renderQueueItem.comp.name);
             }
+            names.push(compName);
         }
-        // Default to true so that we don't block any customers in case we can't
-        // sufficiently verify whether they're submitting an image sequence or not
-        return true;
+        if (duplicateNames.length !== 0) {
+            var message = "Selected submission items must have unique names. Found (" + duplicateNames.length * 2 + ") compositions with the same name: "
+            for (var i=0;i<duplicateNames.length;i++) {
+                message = message + "\n\t" + duplicateNames[i];
+            }
+            adcAlert(message, true)
+            return true
+        }
+        return false
     }
 
     var submitButton = controlsGroup.add("button", undefined, "Submit");
@@ -213,7 +215,9 @@ function buildUI(thisObj) {
             if (mfrCheckBox.value) {
                 maxCpuUsagePercentage = parseInt(maxCpuUsagePercentageTextBox.text)
             }
-            SubmitSelection(list.selection, parseInt(framesPerTaskTextBox.text), multiFrameRendering, maxCpuUsagePercentage);
+            if (checkForInvalidCompositionNames(list.selection)) {
+                return
+            }
             SubmitSelection(list.selection, uiSettingsState, parseInt(framesPerTaskTextBox.text), multiFrameRendering, maxCpuUsagePercentage);
             list.selection = null;
         }
