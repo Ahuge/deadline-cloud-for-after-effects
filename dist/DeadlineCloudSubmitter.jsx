@@ -2694,8 +2694,7 @@ function buildUI(thisObj) {
     listGroup.alignment = ['fill', 'fill'];
     listGroup.alignChildren = ['fill', 'fill']
 
-    const bounds = list == null ? undefined : list.bounds;
-    var list = listGroup.add("listbox", bounds, "", {
+    var list = listGroup.add("listbox", undefined, "", {
         multiselect: true,
         numberOfColumns: 4,
         showHeaders: true,
