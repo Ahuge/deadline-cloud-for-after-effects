@@ -2,8 +2,8 @@
 // Manual changes in this file may be overwritten by a new installation.
 // Please change the source files and regenerate this file instead.
 
-const scriptFolder = Folder.current.fsName;
-const SUPPORTED_VERSIONS = [24.6, 25.1, 25.2];
+var scriptFolder = Folder.current.fsName;
+var SUPPORTED_VERSIONS = [24.6, 25.1, 25.2];
 
 function readFile(filePath) {
     const f = new File(filePath);
@@ -319,7 +319,7 @@ function __generateUtil() {
          * Only inverts the first level, does not handle nested objects properly.
          */
         const ret = {};
-        for (const key in jsObject) {
+        for (var key in jsObject) {
             ret[jsObject[key]] = key;
         }
         return ret;
@@ -685,7 +685,7 @@ function __generateUtil() {
 
         if (obj instanceof Object) {
             const copyObject = {};
-            for (const key in obj) {
+            for (var key in obj) {
                 if (obj.hasOwnProperty(key)) {
                     copyObject[key] = deepCopy(obj[key]);
                 }
@@ -825,21 +825,21 @@ dcUtil = __generateUtil();
 
 
 
-const LOG_LEVEL = {
+var LOG_LEVEL = {
     ERROR: 1,
     WARNING: 2,
     INFO: 3,
     DEBUG: 4
 };
 
-const LOG_LEVEL_MAP = dcUtil.invertObject(LOG_LEVEL)
+var LOG_LEVEL_MAP = dcUtil.invertObject(LOG_LEVEL)
 
 // Global log level
 // Set the desired logging level
-const CURRENT_LOG_LEVEL = LOG_LEVEL.DEBUG;
+var CURRENT_LOG_LEVEL = LOG_LEVEL.DEBUG;
 
-const _DC_LOGGER_DEFAULT_MAX_BYTES = 10 * 1024 * 1024 // 10 MiB
-const _DC_LOGGER_DEFAULT_BACKUP_COUNT = 5
+var _DC_LOGGER_DEFAULT_MAX_BYTES = 10 * 1024 * 1024 // 10 MiB
+var _DC_LOGGER_DEFAULT_BACKUP_COUNT = 5
 
 function Logger(logFileName, logDirectoryPath, maxBytes, backupCount) {
     /**
@@ -994,11 +994,11 @@ function getCurrentTimeAsStr() {
 
 
 // Setup logger
-const _scriptFileName = "OpenAeSubmitter.jsx";
-const logFileName = "aftereffects.log";
-const logDirectoryPath = dcUtil.getUserDirectory() + "/.deadline/logs/submitters/";
-const logNormDirectoryPath = dcUtil.normPath(logDirectoryPath)
-const logger = Logger(logFileName, logNormDirectoryPath);
+var _scriptFileName = "OpenAeSubmitter.jsx";
+var logFileName = "aftereffects.log";
+var logDirectoryPath = dcUtil.getUserDirectory() + "/.deadline/logs/submitters/";
+var logNormDirectoryPath = dcUtil.normPath(logDirectoryPath)
+var logger = Logger(logFileName, logNormDirectoryPath);
 
 
 
@@ -1007,8 +1007,11 @@ function UiSettingsState() {
 }
 function UiSettingsStore(name) {
     this.name = name;
+    // _framesPerTask: string
     this._framesPerTask = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK);;
+    // _multiFrameRendering: bool
     this._multiFrameRendering = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING);
+    // _maxCpuUsagePercentage: string
     this._maxCpuUsagePercentage = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE);
 
     this.framesPerTask = function () {
@@ -1016,7 +1019,7 @@ function UiSettingsStore(name) {
     }
     this.setFramesPerTask = function (value) {
         logger.warning("(" + this.name + ") Setting framesPerTask to " + value)
-        this._framesPerTask = value
+        this._framesPerTask = typeof value === "string" ? value : value.toString()
     }
 
     this.multiFrameRendering = function () {
@@ -1024,7 +1027,7 @@ function UiSettingsStore(name) {
     }
     this.setMultiFrameRendering = function (value) {
         logger.warning("(" + this.name + ") Setting multiFrameRendering to " + value)
-        this._multiFrameRendering = value
+        this._multiFrameRendering = typeof value === "boolean" ? value : (value === "true")
     }
 
     this.maxCpuUsagePercentage = function () {
@@ -1032,8 +1035,26 @@ function UiSettingsStore(name) {
     }
     this.setMaxCpuUsagePercentage = function (value) {
         logger.warning("(" + this.name + ") Setting maxCpuUsagePercentage to " + value)
-        this._maxCpuUsagePercentage = value
+        this._maxCpuUsagePercentage = typeof value === "string" ? value : value.toString()
     }
+}
+
+UiSettingsState.prototype.create = function (compId, framesPerTask, multiFrameRendering, maxCpuUsagePercentage) {
+    if (!this.settings[compId]) {
+        this.settings[compId] = new UiSettingsStore(compId)
+    }
+    if (framesPerTask === undefined) {
+        framesPerTask = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK);
+    }
+    if (multiFrameRendering === undefined) {
+        multiFrameRendering = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING);
+    }
+    if (maxCpuUsagePercentage === undefined) {
+        maxCpuUsagePercentage = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE);
+    }
+    this.settings[compId].setFramesPerTask(framesPerTask);
+    this.settings[compId].setMultiFrameRendering(multiFrameRendering);
+    this.settings[compId].setMaxCpuUsagePercentage(maxCpuUsagePercentage);
 }
 
 UiSettingsState.prototype.get = function(compId) {
@@ -1045,7 +1066,7 @@ UiSettingsState.prototype.get = function(compId) {
 
 
 
-const jobTemplateHelperFile = "JobTemplateHelper.json";
+var jobTemplateHelperFile = "JobTemplateHelper.json";
 /**
  * Generates the basic parameterValue file for the job template
  **/
@@ -1080,7 +1101,7 @@ function parameterValues(
         },
         {
             name: prefix + "_MultiFrameRendering",
-            value: multiFrameRendering,
+            value: multiFrameRendering === true ? "ON" : "OFF",
         },
     ];
     if (maxCpuUsagePercentage) {
@@ -1136,13 +1157,13 @@ function findJobAttachments(rootComp) {
         const comp = queue.pop();
         var shouldShowPopup = true; // only show the popup once per comp so the user doesn't get spammed if there's a lot of missing media
         for (var i = 1; i <= comp.numLayers; i++) {
-            const layer = comp.layer(i);
+            var layer = comp.layer(i);
             if (
                 layer != null &&
                 layer instanceof AVLayer &&
                 layer.source != null
             ) {
-                const src = layer.source;
+                var src = layer.source;
                 if (src.id in exploredItems) {
                     continue;
                 }
@@ -1233,10 +1254,10 @@ function getPythonExecutable() {
 
     for (var i = 0; i < pythonExecutables.length; i++) {
         // Search for python executable
-        const pythonExecutable = pythonExecutables[i];
+        var pythonExecutable = pythonExecutables[i];
         var findCommand = "which " + pythonExecutable;
         var findSuccess = "/" + pythonExecutable;
-        const os = $.os.toLowerCase();
+        var os = $.os.toLowerCase();
         if (os.indexOf("windows") !== -1) {
             findCommand = "where " + pythonExecutable;
             findSuccess = "\\" + pythonExecutable;
@@ -1337,7 +1358,7 @@ function getLocationForFont(fontPostScriptName) {
         if (!fontPaths) {
             return null;
         }
-        for (const path in fontPaths) {
+        for (var path in fontPaths) {
             if (fontPaths[path]["postscript_name"] == fontPostScriptName) {
                 // Found path that matches the given font's name
                 fontPath = path;
@@ -1359,7 +1380,7 @@ function createFontFilename(fontLocation, fontPostScriptName) {
     const lastDotIndex = fontLocation.lastIndexOf('.');
     const extensionRegex = /\.[a-zA-Z]+$/;
 
-    const fontName = "";
+    var fontName = "";
 
     var validExtension = true;
     const fontExtensions = [".otf", ".ttf"];
@@ -1385,7 +1406,7 @@ function createFontFilename(fontLocation, fontPostScriptName) {
     }
 
     if (validExtension) {
-        const fontName = fontPostScriptName + fileExtension;
+        var fontName = fontPostScriptName + fileExtension;
     }
 
     return fontName;
@@ -1416,14 +1437,14 @@ function getFontsFromFileLegacy() {
             if (sourceText.numKeys) {
                 var oldLocation = "";
                 for (var k = 1; k <= sourceText.numKeys; k++) {
-                    const textDocument = sourceText.keyValue(k);
+                    var textDocument = sourceText.keyValue(k);
                     var fontPostScriptName = "";
                     try {
                         fontPostScriptName = textDocument.fontObject.postScriptName;
                     } catch (e) {
                         logger.error(e.message, jobTemplateHelperFile);
                     }
-                    const fontLocation = textDocument.fontLocation || getLocationForFont(fontPostScriptName);
+                    var fontLocation = textDocument.fontLocation || getLocationForFont(fontPostScriptName);
                     if (oldLocation == fontLocation) {
                         continue;
                     }
@@ -1434,21 +1455,21 @@ function getFontsFromFileLegacy() {
                         );
                         continue;
                     }
-                    const fontName = createFontFilename(fontLocation, fontPostScriptName);
+                    var fontName = createFontFilename(fontLocation, fontPostScriptName);
                     if (fontName) {
                         fontLocations.push([fontName, fontLocation]);
                     }
                     oldLocation = fontLocation;
                 }
             } else {
-                const textDocument = sourceText.value;
+                var textDocument = sourceText.value;
                 var fontPostScriptName = "";
                 try {
                     fontPostScriptName = textDocument.fontObject.postScriptName;
                 } catch (e) {
                     logger.error(e.message, jobTemplateHelperFile);
                 }
-                const fontLocation = textDocument.fontLocation || getLocationForFont(fontPostScriptName);
+                var fontLocation = textDocument.fontLocation || getLocationForFont(fontPostScriptName);
                 if (!fontLocation) {
                     adcAlert(
                         "The path to the font " + fontPostScriptName + " couldn't be identified.\n" +
@@ -1456,7 +1477,7 @@ function getFontsFromFileLegacy() {
                     );
                     continue;
                 }
-                const fontName = createFontFilename(fontLocation, fontPostScriptName);
+                var fontName = createFontFilename(fontLocation, fontPostScriptName);
                 if (fontName) {
                     fontLocations.push([fontName, fontLocation]);
                 }
@@ -1514,7 +1535,7 @@ function isImageOutput(extension) {
 
 
 
-const JobParams = [
+var JobParams = [
     "JobScriptDir",
     "CondaPackages",
     "ProjectFile"
@@ -1524,7 +1545,7 @@ var paramPattern = "Param\."
 for (var p=0;p<JobParams.length;p++) {
     paramPattern = paramPattern + "(?!" + JobParams[p] + ")"
 }
-const paramPatternRegex = new RegExp(paramPattern, 'g')
+var paramPatternRegex = new RegExp(paramPattern, 'g')
 
 
 // Validate that the RenderQueueIndex for each selectionItem is still valid
@@ -1647,7 +1668,7 @@ function generateStepParameterFragment(bundlePath, isImageSeq, compName) {
             // Don't modify these values
             continue
         }
-        const replacedDefinition = stepParametersObject.parameterDefinitions[i]
+        var replacedDefinition = stepParametersObject.parameterDefinitions[i]
         replacedDefinition.name = compName + "_" + stepParametersObject.parameterDefinitions[i].name
         replacedDefinition.userInterface.label = "(" + compName + ") " + replacedDefinition.userInterface.label
 
@@ -1716,16 +1737,16 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
 
     // Check to make sure that all of our selection indices are correct
     for (var i=0;i<selection.length;i++) {
-        const selectionItem = selection[i];
-        const renderQueueIndex = selectionItem.renderQueueIndex;
+        var selectionItem = selection[i];
+        var initialRenderQueueIndex = selectionItem.renderQueueIndex;
 
         // because our panel is updated independently of the render queue, the two may become out of sync
         // we need to verify that the selection made actually matches what is in the render queue
-        if (!UpdateRenderQueueIndices(renderQueueIndex, selectionItem)) {
+        if (!UpdateRenderQueueIndices(initialRenderQueueIndex, selectionItem)) {
             return;
         }
-        const renderQueueItem = app.project.renderQueue.item(renderQueueIndex);
-        renderQueueItems.push([renderQueueItem, renderQueueIndex])
+        var initialRenderQueueItem = app.project.renderQueue.item(initialRenderQueueIndex);
+        renderQueueItems.push([initialRenderQueueItem, initialRenderQueueIndex])
     }
 
     // We have valid selections check for saving
@@ -1844,34 +1865,34 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
     const stepOutputFolderParameters = [];
 
     for (var i=0;i<renderQueueItems.length;i++) {
-        const renderQueueItem = renderQueueItems[i][0];
-        const renderQueueIndex = renderQueueItems[i][1];
+        var renderQueueItem = renderQueueItems[i][0];
+        var renderQueueIndex = renderQueueItems[i][1];
 
         if (!validateRenderQueueItemOutputModule(renderQueueItem)) {
             return;
         }
 
-        const stepFramesPerTask = parseInt(selectionSettings.get(selectionItem.compId).framesPerTask() || framesPerTask)
-        const stepMaxCpuUsagePercentage = parseInt(selectionSettings.get(selectionItem.compId).maxCpuUsagePercentage() || maxCpuUsagePercentage)
-        const stepMultiFrameRendering = selectionSettings.get(selectionItem.compId).multiFrameRendering() || multiFrameRendering
+        var stepFramesPerTask = parseInt(selectionSettings.get(renderQueueItem.comp.id).framesPerTask() || framesPerTask)
+        var stepMaxCpuUsagePercentage = parseInt(selectionSettings.get(renderQueueItem.comp.id).maxCpuUsagePercentage() || maxCpuUsagePercentage)
+        var stepMultiFrameRendering = selectionSettings.get(renderQueueItem.comp.id).multiFrameRendering() || multiFrameRendering
 
-        const outputModule = renderQueueItem.outputModule(1).file;
-        const outputPath = outputModule.fsName;
-        const outputFile = outputModule.name;
-        const outputFolder = outputModule.parent.fsName;
+        var outputModule = renderQueueItem.outputModule(1).file;
+        var outputPath = outputModule.fsName;
+        var outputFile = outputModule.name;
+        var outputFolder = outputModule.parent.fsName;
 
         logger.debug("OutputPath is: " + outputPath, submitBundleFile);
         logger.debug("OutputFile is: " + outputFile, submitBundleFile);
         logger.debug("OutputFolder is: " + outputFolder, submitBundleFile);
 
-        const renderSettings = renderQueueItem.getSettings(GetSettingsFormat.STRING_SETTABLE);
-        const startFrame = Number(
+        var renderSettings = renderQueueItem.getSettings(GetSettingsFormat.STRING_SETTABLE);
+        var startFrame = Number(
             timeToFrames(
                 Number(renderSettings["Time Span Start"]),
                 Number(renderSettings["Use this frame rate"])
             )
         );
-        const endFrame =
+        var endFrame =
             Number(
                 timeToFrames(
                     Number(renderSettings["Time Span End"]),
@@ -1879,17 +1900,17 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
                 )
             ) - 1; // end frame is inclusive so we subtract 1
 
-        const dependencies = findJobAttachments(renderQueueItem.comp); // list of filenames
-        const compName = dcUtil.removeIllegalCharacters(renderQueueItem.comp.name);
+        var dependencies = findJobAttachments(renderQueueItem.comp); // list of filenames
+        var compName = dcUtil.removeIllegalCharacters(renderQueueItem.comp.name);
 
-        const sanitizedOutputFolder = sanitizeFilePath(outputFolder);
+        var sanitizedOutputFolder = sanitizeFilePath(outputFolder);
 
-        const outputFileNameNoRegex = getFileNameNoRegex(outputFile);
-        const extension = getFileExtension(outputFileNameNoRegex);
+        var outputFileNameNoRegex = getFileNameNoRegex(outputFile);
+        var extension = getFileExtension(outputFileNameNoRegex);
         logger.debug("extension set to: " + extension, submitBundleFile);
-        const isImageSeq = isImageOutput(extension);
+        var isImageSeq = isImageOutput(extension);
 
-        const sanitizedOutputFileName = dcUtil.removePercentageFromFileName(outputFileNameNoRegex);
+        var sanitizedOutputFileName = dcUtil.removePercentageFromFileName(outputFileNameNoRegex);
         logger.debug("sanitizedOutputFileName is " + sanitizedOutputFileName, submitBundleFile);
 
         // Push step asset references
@@ -1898,7 +1919,7 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
         }
         jobAssetReferences.assetReferences.outputs.directories.push(sanitizedOutputFolder)
 
-        const parameterValues = generateParameterValuesForStep(
+        var parameterValues = generateParameterValuesForStep(
             compName,
             renderQueueIndex,
             sanitizedOutputFolder,
@@ -1919,16 +1940,16 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
 
         stepOutputFolderParameters.push("{{Param." + compName + "_OutputDir}}")
 
-        const stepTemplate = generateStepTemplateFragment(bundle.fsName, isImageSeq, compName)
+        var stepTemplate = generateStepTemplateFragment(bundle.fsName, isImageSeq, compName)
         for (var s=0;s<stepTemplate.steps.length;s++) {
             template.steps.push(stepTemplate.steps[s])
         }
-        const stepParameters = generateStepParameterFragment(bundle.fsName, isImageSeq, compName)
+        var stepParameters = generateStepParameterFragment(bundle.fsName, isImageSeq, compName)
         for (var p=0;p<stepParameters.parameterDefinitions.length;p++) {
             var parameterExists = false;
             for (var tpd=0;tpd<template.parameterDefinitions.length;tpd++) {
-                const templateParameterDefinition = template.parameterDefinitions[tpd];
-                const stepParameterDefinition = stepParameters.parameterDefinitions[p];
+                var templateParameterDefinition = template.parameterDefinitions[tpd];
+                var stepParameterDefinition = stepParameters.parameterDefinitions[p];
                 if (templateParameterDefinition.name == stepParameterDefinition.name) {
                     parameterExists = true
                     break
@@ -2604,6 +2625,61 @@ if (!app.settings.haveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MA
 }
 
 
+function populateListBoxItem(item, renderQueueItem, index) {
+    item.renderQueueIndex = index;
+    item.compId = renderQueueItem.comp.id;
+    item.subItems[0].text = renderQueueItem.comp.name;
+
+    const renderSettings = renderQueueItem.getSettings(GetSettingsFormat.STRING_SETTABLE);
+    const startFrame = Number(timeToFrames(Number(renderSettings["Time Span Start"]), Number(renderSettings["Use this frame rate"])));
+    const endFrame = Number(timeToFrames(Number(renderSettings["Time Span End"]), Number(renderSettings["Use this frame rate"]))) - 1; //end frame is inclusive so we subtract 1
+
+    item.subItems[1].text = startFrame == endFrame ? startFrame.toString() : startFrame + "-" + endFrame;
+    if (renderQueueItem.numOutputModules <= 0) {
+        item.subItems[2].text = "<not set>";
+    } else if (renderQueueItem.numOutputModules == 1) {
+        const outputFile = renderQueueItem.outputModule(1).file;
+        item.subItems[2].text = outputFile == null ? "<not set>" : outputFile.fsName;
+    } else {
+        item.subItems[2].text = "<multiple output modules>";
+    }
+}
+
+
+function refreshList(listBox, uiSettingsState) {
+    listBox.removeAll();
+    const framesPerTask = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK) || "50"
+    const multiFrameRendering = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING) === "true"
+    const maxCpuUsagePercentage = "90" // app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE)
+
+    const InvalidRenderQueueItemStatuses = [
+        RQItemStatus.RENDERING,
+        RQItemStatus.WILL_CONTINUE,
+        RQItemStatus.USER_STOPPED,
+        RQItemStatus.ERR_STOPPED,
+        RQItemStatus.DONE
+    ]
+    for (var index=1;index <= app.project.renderQueue.numItems; index++) {
+        var renderQueueItem = app.project.renderQueue.item(index);
+        if (renderQueueItem == null) {
+            continue;
+        }
+
+        if (InvalidRenderQueueItemStatuses.indexOf(renderQueueItem.status) !== -1) {
+            // Status is in InvalidRenderQueueItemStatuses.
+            continue;
+        }
+
+        var item = listBox.add('item', index.toString());
+        populateListBoxItem(item, renderQueueItem, index);
+        // TODO: Value
+
+        uiSettingsState.create(item.compId, framesPerTask, multiFrameRendering, maxCpuUsagePercentage);
+    }
+
+    listBox.selection = null;
+}
+
 /**
  * Builds the Script UI for the Deadline Cloud Submitter
  **/
@@ -2636,7 +2712,67 @@ function buildUI(thisObj) {
     const listGroup = root.add("panel", undefined, "");
     listGroup.alignment = ['fill', 'fill'];
     listGroup.alignChildren = ['fill', 'fill']
-    var list = null;
+
+    const bounds = list == null ? undefined : list.bounds;
+    var list = listGroup.add("listbox", bounds, "", {
+        multiselect: true,
+        numberOfColumns: 4,
+        showHeaders: true,
+        columnTitles: ['#', 'Name', 'Frames', 'Output Path'],
+        columnWidths: [32, 160, 120, 240],
+    });
+    list.preferredSize.height = 400;
+    list.preferredSize.width = 500;
+
+    function onSelectionChange() {
+        const selection = list.selection;
+        if (selection == null) {
+            refreshList(list, uiSettingsState);
+            framesPerTaskTextBox.text = "";
+            return;
+        }
+        submitButton.enabled = true;
+        submitButton.active = false;
+        submitButton.active = true;
+
+        // Disable everything
+        framesPerTaskTextBox.enabled = false
+        mfrCheckBox.enabled = false
+        maxCpuUsagePercentageTextBox.enabled = false
+
+        if (selection.length !== 1) {
+            return
+        }
+        const selectionItem = selection[0]
+        logger.warning("Selected Comp is: " + app.project.renderQueue.item(selectionItem.renderQueueIndex).comp.name);
+        const imageOutput = isRenderQueueItemImageOutput(app.project.renderQueue.item(selectionItem.renderQueueIndex))
+        framesPerTaskTextBox.enabled = imageOutput
+        mfrCheckBox.enabled = true
+        maxCpuUsagePercentageTextBox.enabled = true
+
+        logger.debug("    Setting framesPerTaskTextBox.text to: " + selectionItem.subItems[1].text);
+        framesPerTaskTextBox.text = selectionItem.subItems[1].text
+
+        const settings = uiSettingsState.get(selectionItem.compId)
+        if (settings === undefined) {
+            logger.warning("Could not find settings for : " + selectionItem.compId);
+            return
+        }
+
+        if (imageOutput === true) {
+            logger.debug("    Setting framesPerTaskTextBox.text to: " + (settings.framesPerTask() || selectionItem.subItems[1].text));
+            framesPerTaskTextBox.text = settings.framesPerTask() || selectionItem.subItems[1].text
+        }
+        logger.debug("    Setting mfrCheckBox.value to: " + settings.multiFrameRendering());
+        mfrCheckBox.value = settings.multiFrameRendering()
+        logger.debug("    Setting maxCpuUsagePercentageTextBox.text to: " + settings.maxCpuUsagePercentage());
+        maxCpuUsagePercentageTextBox.text = settings.maxCpuUsagePercentage()
+
+        maxCpuUsagePercentageTextBox.enabled = mfrCheckBox.value
+    }
+
+    list.onChange = onSelectionChange;
+
     const controlsGroup = root.add("group", undefined, "");
     controlsGroup.orientation = 'column';
     controlsGroup.alignment = ['fill', 'bottom'];
@@ -2675,6 +2811,9 @@ function buildUI(thisObj) {
             framesPerTaskTextBox.text = newFramesPerTaskValue;
         }
         app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK, framesPerTaskTextBox.text);
+        if (list.selection == null) {
+            return;
+        }
         for (var s=0;s<list.selection.length;s++) {
             const selectionItem = list.selection[s];
             uiSettingsState.get(selectionItem.compId).setFramesPerTask(framesPerTaskTextBox.text)
@@ -2762,9 +2901,9 @@ function buildUI(thisObj) {
         const names = [];
         const duplicateNames = [];
         for (var i=0;i<selection.length;i++) {
-            const selectionItem = selection[i];
-            const renderQueueItem = app.project.renderQueue.item(selectionItem.renderQueueIndex);
-            const compName = dcUtil.removeIllegalCharacters(renderQueueItem.comp.name);
+            var selectionItem = selection[i];
+            var renderQueueItem = app.project.renderQueue.item(selectionItem.renderQueueIndex);
+            var compName = dcUtil.removeIllegalCharacters(renderQueueItem.comp.name);
             if (names.indexOf(compName) !== -1) {
                 duplicateNames.push(renderQueueItem.comp.name);
             }
@@ -2799,102 +2938,15 @@ function buildUI(thisObj) {
     submitButton.alignment = 'right';
     submitButton.enabled = false;
 
-    function updateList() {
-        const bounds = list == null ? undefined : list.bounds;
-        const newList = listGroup.add("listbox", bounds, "", {
-            multiselect: true,
-            numberOfColumns: 4,
-            showHeaders: true,
-            columnTitles: ['#', 'Name', 'Frames', 'Output Path'],
-            columnWidths: [32, 160, 120, 240],
-        });
-        newList.preferredSize.height = 400
-        newList.preferredSize.width = 500
-        for (var i = 1; i <= app.project.renderQueue.numItems; i++) {
-            const rqi = app.project.renderQueue.item(i);
-            if (rqi == null) {
-                continue;
-            }
-            if (rqi.status == RQItemStatus.RENDERING || rqi.status == RQItemStatus.WILL_CONTINUE || rqi.status == RQItemStatus.USER_STOPPED || rqi.status == RQItemStatus.ERR_STOPPED || rqi.status == RQItemStatus.DONE) {
-                continue;
-            }
-            const item = newList.add('item', i.toString());
-            item.renderQueueIndex = i;
-            item.compId = rqi.comp.id;
-            // Create a default entry for each comp as needed.
-            uiSettingsState.get(item.compId)
-            item.subItems[0].text = rqi.comp.name;
-            const renderSettings = rqi.getSettings(GetSettingsFormat.STRING_SETTABLE);
-            const startFrame = Number(timeToFrames(Number(renderSettings["Time Span Start"]), Number(renderSettings["Use this frame rate"])));
-            const endFrame = Number(timeToFrames(Number(renderSettings["Time Span End"]), Number(renderSettings["Use this frame rate"]))) - 1; //end frame is inclusive so we subtract 1
-            item.subItems[1].text = startFrame == endFrame ? startFrame.toString() : startFrame + "-" + endFrame;
-            if (rqi.numOutputModules <= 0) {
-                item.subItems[2].text = "<not set>";
-            } else if (rqi.numOutputModules == 1) {
-                const outputFile = rqi.outputModule(1).file;
-                item.subItems[2].text = outputFile == null ? "<not set>" : outputFile.fsName;
-            } else {
-                item.subItems[2].text = "<multiple output modules>";
-            }
-        }
-
-        if (list != null) {
-            listGroup.remove(list);
-        }
-        list = newList;
-
-        function onSelectionChange() {
-            const selection = list.selection;
-            if (selection == null) {
-                updateList();
-                framesPerTaskTextBox.text = "";
-                return;
-            }
-            submitButton.enabled = true;
-            submitButton.active = false;
-            submitButton.active = true;
-
-            // Disable everything
-            framesPerTaskTextBox.enabled = false
-            mfrCheckBox.enabled = false
-            maxCpuUsagePercentageTextBox.enabled = false
-
-            if (selection.length !== 1) {
-                return
-            }
-            const selectionItem = selection[0]
-            logger.warning("Selected Comp is: " + app.project.renderQueue.item(selectionItem.renderQueueIndex).comp.name);
-            const imageOutput = isRenderQueueItemImageOutput(app.project.renderQueue.item(selectionItem.renderQueueIndex))
-            framesPerTaskTextBox.enabled = imageOutput
-            mfrCheckBox.enabled = true
-            maxCpuUsagePercentageTextBox.enabled = true
-
-            framesPerTaskTextBox.text = selectionItem.subItems[1].text
-
-            const settings = uiSettingsState.get(selectionItem.compId)
-            if (settings === undefined) {
-                logger.warning("Could not find settings for : " + selectionItem.compId);
-                return
-            }
-
-            framesPerTaskTextBox.text = settings.framesPerTask() || selectionItem.subItems[1].text
-            mfrCheckBox.value = settings.multiFrameRendering()
-            maxCpuUsagePercentageTextBox.value = settings.maxCpuUsagePercentage()
-
-            maxCpuUsagePercentageTextBox.enabled = mfrCheckBox.value
-        }
-
-        list.onChange = onSelectionChange;
-        list.selection = null;
-    }
-
-    updateList();
+    refreshList(list, uiSettingsState);
     if (list.selection != null && list.selection.length === 1) {
         const selectionItem = list.selection[0]
         const renderQueueItem = app.project.renderQueue.item(selectionItem.renderQueueIndex)
         framesPerTaskTextBox.enabled = isRenderQueueItemImageOutput(renderQueueItem)
     }
-    refreshButton.onClick = updateList;
+    refreshButton.onClick = function() {
+        refreshList(list, uiSettingsState);
+    }
 
     submitterPanel.layout.layout(true);
 
