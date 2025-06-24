@@ -5,16 +5,16 @@
 var scriptFolder = Folder.current.fsName;
 
 function readFile(filePath) {
-    var f = new File(filePath);
+    const f = new File(filePath);
     f.encoding = "UTF-8";
     f.open("r");
-    var fileContents = f.read();
+    const fileContents = f.read();
     f.close();
     return fileContents;
 }
 
 function writeFile(filePath, fileContents) {
-    var f = new File(filePath);
+    const f = new File(filePath);
     f.encoding = "UTF-8";
     f.open("w");
     f.write(fileContents);
@@ -25,18 +25,18 @@ function writeFile(filePath, fileContents) {
 function timeToFrames(time, fps) {
     //temporarily change display format so we can convert seconds to frames
     //We could perform the math ourselves, but using After Effects's internal methods ensure that we don't lose precision due to floating point errors
-    var prevFrameDisplay = app.project.timeDisplayType;
-    var prevFeetFrames = app.project.framesUseFeetFrames;
+    const prevFrameDisplay = app.project.timeDisplayType;
+    const prevFeetFrames = app.project.framesUseFeetFrames;
     app.project.timeDisplayType = TimeDisplayType.FRAMES;
     app.project.framesUseFeetFrames = false;
-    var frame = timeToCurrentFormat(time, fps, false);
+    const frame = timeToCurrentFormat(time, fps, false);
     app.project.timeDisplayType = prevFrameDisplay;
     app.project.framesUseFeetFrames = prevFeetFrames;
     return frame;
 }
 
 function sanitizeOutputs(outputPaths) {
-    var sanitized = [];
+    const sanitized = [];
     var sanitizedPath = "";
     for (var i = 0; i < outputPaths.length; i++) {
         sanitizedPath = sanitizeFilePath(outputPaths[i]);
@@ -126,7 +126,7 @@ function adcAlert(message, errorIcon) {
 
 function __generateUtil() {
 
-    var scriptFileUtilName = "Util.jsx";
+    const scriptFileUtilName = "Util.jsx";
 
 
     function toBooleanString(value) {
@@ -173,7 +173,7 @@ function __generateUtil() {
          * @param {int} maxValue - Maximum value that the slider/edittext can have
          */
         textObj.onChange = function() {
-            var newValue = parseFloat(textObj.text);
+            const newValue = parseFloat(textObj.text);
             if (!isNaN(newValue) && newValue >= minValue && newValue <= maxValue) {
                 sliderObj.value = newValue;
                 logger.log("Changed editText(" + textObj.name + ") value to: " + newValue, scriptFileUtilName, LOG_LEVEL.DEBUG);
@@ -195,7 +195,7 @@ function __generateUtil() {
          * @param {int} minValue - Minimum value that the slider/edittext can have.
          * @param {int} maxValue - Maximum value that the slider/edittext can have
          */
-        var sliderValue = Math.round(sliderObj.value);
+        const sliderValue = Math.round(sliderObj.value);
         if (!isNaN(sliderValue) && sliderValue >= minValue && sliderValue <= maxValue) {
             textObj.text = sliderValue;
         }
@@ -211,7 +211,7 @@ function __generateUtil() {
          * @param {int} maxValue - Maximum value that the slider/edittext can have
          */
 
-        var newValue = parseFloat(textObj.text);
+        const newValue = parseFloat(textObj.text);
         if (newValue < minValue) {
             textObj.text = minValue;
             sliderObj.value = minValue;
@@ -268,7 +268,7 @@ function __generateUtil() {
          * @param {Object} listBox - Source object to retrieve data from.
          * Returns array with assets available in the scene.
          */
-        var _assetsList = []
+        const _assetsList = []
         for (var i = 0; i < listBox.items.length; i++) {
             _assetsList.push(listBox.items[i].text);
         }
@@ -317,8 +317,8 @@ function __generateUtil() {
          * Inverts a given JavaScript object.
          * Only inverts the first level, does not handle nested objects properly.
          */
-        var ret = {};
-        for (var key in jsObject) {
+        const ret = {};
+        for (const key in jsObject) {
             ret[jsObject[key]] = key;
         }
         return ret;
@@ -328,8 +328,8 @@ function __generateUtil() {
         /**
          * Return File instance from temporary directory with the given name.
          */
-        var _tempFilePath = normalizePath(getTempFolder() + "/" + fileName);
-        var _tempFile = File(_tempFilePath);
+        const _tempFilePath = normalizePath(getTempFolder() + "/" + fileName);
+        const _tempFile = File(_tempFilePath);
         return _tempFile;
     }
 
@@ -359,7 +359,7 @@ function __generateUtil() {
 
         // Test every path in our list by creating a test file
         for (var i = 0; i < altPaths.length; i++) {
-            var folder = new Folder(altPaths[i]);
+            const folder = new Folder(altPaths[i]);
 
             // Create the path if it does not already exist
             folder.create();
@@ -416,9 +416,9 @@ function __generateUtil() {
 
     function _wrappedCallSystemWindows(cmd) {
 
-        var tempOutputFile = getTempFile("deadline_cloud_ae_pipe.txt");
-        var tempBootstrapBatFile = getTempFile("aeCallSystemBootstrap.bat");
-        var tempBatFile = getTempFile("aeCallSystem.bat");
+        const tempOutputFile = getTempFile("deadline_cloud_ae_pipe.txt");
+        const tempBootstrapBatFile = getTempFile("aeCallSystemBootstrap.bat");
+        const tempBatFile = getTempFile("aeCallSystem.bat");
         logger.debug("Command output path: " + tempOutputFile.fsName, scriptFileUtilName);
         _makeBootstrapBatFile(tempBootstrapBatFile, tempBatFile);
         // Wrapped command with error code output
@@ -437,12 +437,12 @@ function __generateUtil() {
         logger.debug(cmd, scriptFileUtilName);
         // Call bootstrap script and return result via intermediary file.
         system.callSystem(tempBootstrapBatFile.fsName);
-        var output = system.callSystem("cmd /c \"type " + tempOutputFile.fsName + "\"");
+        const output = system.callSystem("cmd /c \"type " + tempOutputFile.fsName + "\"");
         return output;
     }
 
     function _makeBootstrapBatFile(bootstrapFile, tempFile) {
-        var _cmd = "@echo off" + "\nstart /min /wait " + tempFile.fsName + "\nexit"
+        const _cmd = "@echo off" + "\nstart /min /wait " + tempFile.fsName + "\nexit"
         bootstrapFile.open("w");
         bootstrapFile.writeln(_cmd);
         bootstrapFile.close();
@@ -465,12 +465,12 @@ function __generateUtil() {
         var result = "";
         var message = "";
         var return_code = 0;
-        var errorIndex = output.indexOf("ERROR CODE:");
+        const errorIndex = output.indexOf("ERROR CODE:");
         if (errorIndex !== -1) {
             // Extract the word and everything behind it
             result = output.substring(errorIndex);
             message = cmd + " Failed. Error has occurred.";
-            var regex = /ERROR CODE:(.*)/;
+            const regex = /ERROR CODE:(.*)/;
             return_code = regex.exec(result);
             return {
                 "return_code": return_code,
@@ -494,14 +494,14 @@ function __generateUtil() {
          * [MAJOR, MINOR, PATCH]
          */
         // Regular expression to match "version " followed by version number
-        var regex = /version\s+(\d+)\.(\d+)\.(\d+)/i;
+        const regex = /version\s+(\d+)\.(\d+)\.(\d+)/i;
 
         // Test if the inputString matches the pattern
-        var parsedVersionNumberOutput = output.match(regex);
+        const parsedVersionNumberOutput = output.match(regex);
 
         // Output the result
         if (parsedVersionNumberOutput) {
-            var versionNumbers = [
+            const versionNumbers = [
                 parseInt(parsedVersionNumberOutput[1]), // Major
                 parseInt(parsedVersionNumberOutput[2]), // Minor
                 parseInt(parsedVersionNumberOutput[3]) // Path
@@ -520,8 +520,8 @@ function __generateUtil() {
          * @param {string} fileName: Job name
          * Returns export directory
          */
-        var partialDir = getPartialExportDir(exportBundleDir);
-        var dir = getPath(partialDir, fileName, exportBundleDir);
+        const partialDir = getPartialExportDir(exportBundleDir);
+        const dir = getPath(partialDir, fileName, exportBundleDir);
         return dir.fsName;
     }
 
@@ -557,21 +557,21 @@ function __generateUtil() {
 
     function getPath(toCheckDir, fileName, rootDir) {
         // 1. Find highest sequence number used for today.
-        var splitDir = toCheckDir.split("//");
-        var toCheckFolderName = splitDir[splitDir.length - 1];
-        var parentDir = toCheckDir.replace(toCheckFolderName, "");
-        var mainDir = new Folder(parentDir);
-        var subFolders = mainDir.getFiles();
-        var regex = new RegExp(toCheckFolderName + "(\\d+)-.*");
+        const splitDir = toCheckDir.split("//");
+        const toCheckFolderName = splitDir[splitDir.length - 1];
+        const parentDir = toCheckDir.replace(toCheckFolderName, "");
+        const mainDir = new Folder(parentDir);
+        const subFolders = mainDir.getFiles();
+        const regex = new RegExp(toCheckFolderName + "(\\d+)-.*");
         var maxSeqNumber = 0;
         var folderName = "";
         for (var idx = 0; idx < subFolders.length; idx++) {
             folderName = subFolders[idx].fullName
-            var match = folderName.match(regex)
+            const match = folderName.match(regex)
             if (!match) {
                 continue;
             }
-            var seqNr = parseInt(match[1]) // Convert first capture group to int
+            const seqNr = parseInt(match[1]) // Convert first capture group to int
             if (seqNr > maxSeqNumber) {
                 maxSeqNumber = seqNr
             }
@@ -582,7 +582,7 @@ function __generateUtil() {
         if (nextSeqNumber < 10) {
             nextSeqNumber = "0" + nextSeqNumber;
         }
-        var folder = new Folder(toCheckDir + nextSeqNumber + "-AfterEffects-" + fileName);
+        const folder = new Folder(toCheckDir + nextSeqNumber + "-AfterEffects-" + fileName);
         if (!folder.exists) {
             folder.create();
         }
@@ -595,15 +595,15 @@ function __generateUtil() {
          * @param {string} job_history_dir: Directory where job bundles is written to on submission.
          * Returns partial job history directory.
          */
-        var currentDate = new Date();
-        var year = currentDate.getFullYear();
+        const currentDate = new Date();
+        const year = currentDate.getFullYear();
         // Zero pad all integers to a length of 2
-        var month = ("0" + (currentDate.getMonth() + 1)).slice(-2); // Months are zero-based
-        var day = ("0" + currentDate.getDate()).slice(-2);
+        const month = ("0" + (currentDate.getMonth() + 1)).slice(-2); // Months are zero-based
+        const day = ("0" + currentDate.getDate()).slice(-2);
         // Create the formatted string
-        var formattedYearMonth = year + '-' + month;
-        var formattedDate = year + '-' + month + '-' + day;
-        var dir = job_history_dir + "//" + formattedYearMonth + "//" + formattedDate + "-";
+        const formattedYearMonth = year + '-' + month;
+        const formattedDate = year + '-' + month + '-' + day;
+        const dir = job_history_dir + "//" + formattedYearMonth + "//" + formattedDate + "-";
         return dir;
     }
 
@@ -611,7 +611,7 @@ function __generateUtil() {
         // Remark: gpu memory and worker memory need to be scaled with *1024, for some of the amount capabilities, the unit displayed on the UI is different
         // then the unit used within template, so use this factor to scale the input values.
 
-        var hostRequirements = {
+        const hostRequirements = {
             "attributes": [{
                 "name": "attr.worker.os.family",
                 "anyOf": [
@@ -675,7 +675,7 @@ function __generateUtil() {
         }
 
         if (obj instanceof Array) {
-            var copyArray = [];
+            const copyArray = [];
             for (var i = 0; i < obj.length; i++) {
                 copyArray[i] = deepCopy(obj[i]);
             }
@@ -683,8 +683,8 @@ function __generateUtil() {
         }
 
         if (obj instanceof Object) {
-            var copyObject = {};
-            for (var key in obj) {
+            const copyObject = {};
+            for (const key in obj) {
                 if (obj.hasOwnProperty(key)) {
                     copyObject[key] = deepCopy(obj[key]);
                 }
@@ -701,10 +701,10 @@ function __generateUtil() {
          */
         // If submit layers pressed -> itemName is not comp name and therefore comp will not be found with render command
         // Check if itemName is an available comp in the project, if not, it is a layer submission
-        var comp = itemName;
-        var compList = [];
+        const comp = itemName;
+        const compList = [];
         for (var i = 1; i <= app.project.rootFolder.items.length; i++) {
-            var item = app.project.rootFolder.items[i];
+            const item = app.project.rootFolder.items[i];
 
             if (item instanceof CompItem) {
                 compList.push(app.project.activeItem.name);
@@ -717,7 +717,7 @@ function __generateUtil() {
     }
 
     function normalizePath(path) {
-        var _file = new File(path);
+        const _file = new File(path);
         if (system.osName == "MacOS") {
             _file.changePath(_file.fsName.replace(/\\/g, "/"));
             return _file.fsName;
@@ -732,7 +732,7 @@ function __generateUtil() {
     }
 
     function removeIllegalCharacters(inputString) {
-        var outputString = inputString.replace(/[.\-\s]/g, "_");
+        const outputString = inputString.replace(/[.\-\s]/g, "_");
 
         return outputString;
     }
@@ -741,8 +741,7 @@ function __generateUtil() {
      * Replace %20 percentage back to space from the file name for Windows os.
      */
     function removePercentageFromFileName(fileName) {
-        var fileName = fileName.replace(/%20/g, " ");
-        return fileName;
+        return fileName.replace(/%20/g, " ");
     }
 
     function getUserDirectory() {
@@ -868,21 +867,21 @@ if (!app.settings.haveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_TA
 }
 
 
-var LOG_LEVEL = {
+const LOG_LEVEL = {
     ERROR: 1,
     WARNING: 2,
     INFO: 3,
     DEBUG: 4
 };
 
-var LOG_LEVEL_MAP = dcUtil.invertObject(LOG_LEVEL)
+const LOG_LEVEL_MAP = dcUtil.invertObject(LOG_LEVEL)
 
 // Global log level
 // Set the desired logging level
-var CURRENT_LOG_LEVEL = LOG_LEVEL.DEBUG;
+const CURRENT_LOG_LEVEL = LOG_LEVEL.DEBUG;
 
-var _DC_LOGGER_DEFAULT_MAX_BYTES = 10 * 1024 * 1024 // 10 MiB
-var _DC_LOGGER_DEFAULT_BACKUP_COUNT = 5
+const _DC_LOGGER_DEFAULT_MAX_BYTES = 10 * 1024 * 1024 // 10 MiB
+const _DC_LOGGER_DEFAULT_BACKUP_COUNT = 5
 
 function Logger(logFileName, logDirectoryPath, maxBytes, backupCount) {
     /**
@@ -913,7 +912,7 @@ function Logger(logFileName, logDirectoryPath, maxBytes, backupCount) {
         backupCount = backupCount || _DC_LOGGER_DEFAULT_BACKUP_COUNT;
         logDirectoryPath = logDirectoryPath || dcUtil.getUserDirectory() + "/.deadline/logs/submitters";
         logDirectoryPath = dcUtil.normPath(logDirectoryPath);
-        var folderObject = new Folder(logDirectoryPath);
+        const folderObject = new Folder(logDirectoryPath);
         if (!folderObject.exists) {
             folderObject.create();
         }
@@ -951,8 +950,8 @@ function Logger(logFileName, logDirectoryPath, maxBytes, backupCount) {
             if (!rolloverFile.exists) {
                 continue;
             }
-            var j = i + 1;
-            var rolloverTargetPath = logDirectoryPath + logFileName + "." + j
+            const j = i + 1;
+            const rolloverTargetPath = logDirectoryPath + logFileName + "." + j
             rolloverFile.copy(rolloverTargetPath);
         }
         // Rollover active file
@@ -973,16 +972,16 @@ function Logger(logFileName, logDirectoryPath, maxBytes, backupCount) {
 
             var levelName = LOG_LEVEL_MAP[level];
             // Check the length of the string
-            var currentLength = levelName.length;
+            const currentLength = levelName.length;
 
             // If the length is less than the target length, pad with spaces
             if (currentLength < 8) {
-                var spacesToAdd = 8 - currentLength;
+                const spacesToAdd = 8 - currentLength;
                 for (var i = 0; i < spacesToAdd; i++) {
                     levelName += " ";
                 }
             }
-            var logMessage = getCurrentTimeAsStr() + " - " + "[" + levelName + "] " + " " + src_module + ": " + msg;
+            const logMessage = getCurrentTimeAsStr() + " - " + "[" + levelName + "] " + " " + src_module + ": " + msg;
 
             logFile.open("a");
             logFile.writeln(logMessage);
@@ -1020,28 +1019,28 @@ function Logger(logFileName, logDirectoryPath, maxBytes, backupCount) {
 }
 
 function getCurrentTimeAsStr() {
-    var date = new Date();
-    var year = date.getFullYear();
+    const date = new Date();
+    const year = date.getFullYear();
     // Zero pad all integers to a length of 2
-    var month = ("0" + (date.getMonth() + 1)).slice(-2); // Months are zero-based
-    var day = ("0" + date.getDate()).slice(-2);
+    const month = ("0" + (date.getMonth() + 1)).slice(-2); // Months are zero-based
+    const day = ("0" + date.getDate()).slice(-2);
 
-    var currentDate = year + "-" + month + "-" + day;
-    var hours = ("0" + date.getHours()).slice(-2);
-    var minutes = ("0" + date.getMinutes()).slice(-2);
-    var seconds = ("0" + date.getSeconds()).slice(-2);
-    var currentTime = hours + ":" + minutes + ":" + seconds;
-    var logDateTime = currentDate + " " + currentTime;
+    const currentDate = year + "-" + month + "-" + day;
+    const hours = ("0" + date.getHours()).slice(-2);
+    const minutes = ("0" + date.getMinutes()).slice(-2);
+    const seconds = ("0" + date.getSeconds()).slice(-2);
+    const currentTime = hours + ":" + minutes + ":" + seconds;
+    const logDateTime = currentDate + " " + currentTime;
     return logDateTime;
 }
 
 
 // Setup logger
-var _scriptFileName = "OpenAeSubmitter.jsx";
-var logFileName = "aftereffects.log";
-var logDirectoryPath = dcUtil.getUserDirectory() + "/.deadline/logs/submitters/";
-var logNormDirectoryPath = dcUtil.normPath(logDirectoryPath)
-var logger = Logger(logFileName, logNormDirectoryPath);
+const _scriptFileName = "OpenAeSubmitter.jsx";
+const logFileName = "aftereffects.log";
+const logDirectoryPath = dcUtil.getUserDirectory() + "/.deadline/logs/submitters/";
+const logNormDirectoryPath = dcUtil.normPath(logDirectoryPath)
+const logger = Logger(logFileName, logNormDirectoryPath);
 
 
 
@@ -1088,7 +1087,7 @@ UiSettingsState.prototype.get = function(compId) {
 
 
 
-var jobTemplateHelperFile = "JobTemplateHelper.json";
+const jobTemplateHelperFile = "JobTemplateHelper.json";
 /**
  * Generates the basic parameterValue file for the job template
  **/
@@ -1105,7 +1104,7 @@ function parameterValues(
     maxCpuUsagePercentage,
     prefix
 ) {
-    var parameterValuesList = [{
+    const parameterValuesList = [{
             name: prefix + "_RenderQueueIndex",
             value: renderQueueIndex,
         },
@@ -1170,22 +1169,22 @@ function findJobAttachments(rootComp) {
     if (rootComp == null) {
         return [];
     }
-    var attachments = [];
-    var exploredItems = {}; // using this object as a set because AE doesn't support sets
+    const attachments = [];
+    const exploredItems = {}; // using this object as a set because AE doesn't support sets
     attachments.push(app.project.file.fsName);
     exploredItems[rootComp.id] = true;
-    var queue = [rootComp];
+    const queue = [rootComp];
     while (queue.length > 0) {
-        var comp = queue.pop();
+        const comp = queue.pop();
         var shouldShowPopup = true; // only show the popup once per comp so the user doesn't get spammed if there's a lot of missing media
         for (var i = 1; i <= comp.numLayers; i++) {
-            var layer = comp.layer(i);
+            const layer = comp.layer(i);
             if (
                 layer != null &&
                 layer instanceof AVLayer &&
                 layer.source != null
             ) {
-                var src = layer.source;
+                const src = layer.source;
                 if (src.id in exploredItems) {
                     continue;
                 }
@@ -1216,7 +1215,7 @@ function findJobAttachments(rootComp) {
         }
     }
 
-    var fontsInProject = getFontsFromFile();
+    const fontsInProject = getFontsFromFile();
 
     if (fontsInProject.length > 0) {
         // Notify the user if any fonts are missing or are substituted during the session.
@@ -1226,7 +1225,7 @@ function findJobAttachments(rootComp) {
             adcAlert("Missing fonts in project: " + (app.fonts.missingOrSubstitutedFonts).toString(), false);
         }
         // Formatting collected fonts
-        var fontReferences = generateFontReferences(fontsInProject);
+        const fontReferences = generateFontReferences(fontsInProject);
         for (var i = 0; i < fontReferences.length; i++) {
             attachments.push(fontReferences[i]);
         }
@@ -1243,11 +1242,11 @@ function getFontsFromFile() {
     var fontLocations = [];
     // app.project.usedFonts was introduced in 24.5. Fall back to scanning text layers if version is older
     if (dcUtil.getAEVersion() >= 24.5) {
-        var usedList = app.project.usedFonts;
+        const usedList = app.project.usedFonts;
         for (var i = 0; i < usedList.length; i++) {
-            var font = usedList[i].font;
-            var fontPostScriptName = font.postScriptName;
-            var fontLocation = font.location || getLocationForFont(fontPostScriptName);
+            const font = usedList[i].font;
+            const fontPostScriptName = font.postScriptName;
+            const fontLocation = font.location || getLocationForFont(fontPostScriptName);
             if (!fontLocation) {
                 adcAlert(
                     "The path to the font " + fontPostScriptName + " couldn't be identified.\n" +
@@ -1255,7 +1254,7 @@ function getFontsFromFile() {
                 );
                 continue;
             }
-            var fontName = createFontFilename(fontLocation, fontPostScriptName);
+            const fontName = createFontFilename(fontLocation, fontPostScriptName);
             if (fontName) {
                 fontLocations.push([fontName, fontLocation]);
             }
@@ -1272,14 +1271,14 @@ function getFontsFromFile() {
  * @return String with executable name corresponding to Python 3, or an empty string if not found
  **/
 function getPythonExecutable() {
-    var pythonExecutables = ["python3", "python", "py"];
+    const pythonExecutables = ["python3", "python", "py"];
 
     for (var i = 0; i < pythonExecutables.length; i++) {
         // Search for python executable
-        var pythonExecutable = pythonExecutables[i];
+        const pythonExecutable = pythonExecutables[i];
         var findCommand = "which " + pythonExecutable;
         var findSuccess = "/" + pythonExecutable;
-        var os = $.os.toLowerCase();
+        const os = $.os.toLowerCase();
         if (os.indexOf("windows") !== -1) {
             findCommand = "where " + pythonExecutable;
             findSuccess = "\\" + pythonExecutable;
@@ -1301,7 +1300,7 @@ function getPythonExecutable() {
         try {
             output = system.callSystem(pythonExecutable + " --version");
             if (output && output.indexOf("Python ") !== -1) {
-                var pythonVersion = parseInt(output.substring(output.indexOf(" ") + 1));
+                const pythonVersion = parseInt(output.substring(output.indexOf(" ") + 1));
                 if (pythonVersion >= 3) {
                     return pythonExecutable;
                 }
@@ -1313,7 +1312,7 @@ function getPythonExecutable() {
     }
 
     // If reaching here, this means python version was too low or executable was not found
-    var errorMessage =
+    const errorMessage =
         "Error: Couldn't find Python 3 or higher on your PATH.\n" +
         "\n" +
         "Please ensure that Python 3 or higher is installed correctly and added to your PATH.";
@@ -1329,12 +1328,12 @@ function getPythonExecutable() {
 function getFontPaths() {
     var errorMessage = "";
     // Ensure Python exists and is at least version 3
-    var pythonExecutable = getPythonExecutable();
+    const pythonExecutable = getPythonExecutable();
     if (!pythonExecutable) {
         return null;
     }
-    var scriptPath = scriptFolder + "/DeadlineCloudSubmitter_Assets/JobTemplate/scripts/get_user_fonts.py";
-    var scriptFile = new File(scriptPath);
+    const scriptPath = scriptFolder + "/DeadlineCloudSubmitter_Assets/JobTemplate/scripts/get_user_fonts.py";
+    const scriptFile = new File(scriptPath);
     if (!scriptFile.exists) {
         errorMessage =
             "Error: Missing font script at " + scriptFile.fsName + "\n" +
@@ -1346,7 +1345,7 @@ function getFontPaths() {
 
     var output = {};
     try {
-        var outputRaw = system.callSystem(pythonExecutable + " \"" + scriptFile.fsName + "\"");
+        const outputRaw = system.callSystem(pythonExecutable + " \"" + scriptFile.fsName + "\"");
         output = JSON.parse(outputRaw);
     } catch (e) {
         logger.error(e.message, jobTemplateHelperFile);
@@ -1376,11 +1375,11 @@ function getLocationForFont(fontPostScriptName) {
     var fontPath = null;
     try {
         // Get user-installed fonts
-        var fontPaths = getFontPaths();
+        const fontPaths = getFontPaths();
         if (!fontPaths) {
             return null;
         }
-        for (var path in fontPaths) {
+        for (const path in fontPaths) {
             if (fontPaths[path]["postscript_name"] == fontPostScriptName) {
                 // Found path that matches the given font's name
                 fontPath = path;
@@ -1399,16 +1398,16 @@ function getLocationForFont(fontPostScriptName) {
  **/
 function createFontFilename(fontLocation, fontPostScriptName) {
     var fileExtension = "";
-    var lastDotIndex = fontLocation.lastIndexOf('.');
-    var extensionRegex = /\.[a-zA-Z]+$/;
+    const lastDotIndex = fontLocation.lastIndexOf('.');
+    const extensionRegex = /\.[a-zA-Z]+$/;
 
-    var fontName = "";
+    const fontName = "";
 
     var validExtension = true;
-    var fontExtensions = [".otf", ".ttf"];
+    const fontExtensions = [".otf", ".ttf"];
 
     // Windows also supports .fon files
-    var os = $.os.toLowerCase();
+    const os = $.os.toLowerCase();
     if (os.indexOf("windows") !== -1) {
         fontExtensions.push(".fon");
     }
@@ -1416,7 +1415,7 @@ function createFontFilename(fontLocation, fontPostScriptName) {
     // Some Adobe Fonts files have a dot followed by numbers as its name with no extension (e.g. ".52741")
     if (extensionRegex.test(fontLocation)) {
         fileExtension = fontLocation.substring(lastDotIndex).toLowerCase();
-        var fontExtensionsAsString = fontExtensions.toString();
+        const fontExtensionsAsString = fontExtensions.toString();
         if (fontExtensionsAsString.indexOf(fileExtension) == -1) {
             adcAlert(
                 "font with an unsupported extension '" + fileExtension +
@@ -1428,7 +1427,7 @@ function createFontFilename(fontLocation, fontPostScriptName) {
     }
 
     if (validExtension) {
-        var fontName = fontPostScriptName + fileExtension;
+        const fontName = fontPostScriptName + fileExtension;
     }
 
     return fontName;
@@ -1439,34 +1438,34 @@ function createFontFilename(fontLocation, fontPostScriptName) {
  * @return an array of font metadata, each item containing the font's temp copy name and the actual location of that font file
  **/
 function getFontsFromFileLegacy() {
-    var fontLocations = [];
-    var items = app.project.items;
+    const fontLocations = [];
+    const items = app.project.items;
     for (var i = items.length; i >= 1; i--) {
-        var item = app.project.item(i);
+        const item = app.project.item(i);
         // Only look at CompItems
         if (!(item instanceof CompItem)) {
             continue;
         }
         for (var j = item.layers.length; j >= 1; j--) {
-            var layer = item.layers[j];
+            const layer = item.layers[j];
             // Only look at TextLayers
             if (!(layer instanceof TextLayer)) {
                 continue;
             }
-            var sourceText = layer.text.sourceText;
+            const sourceText = layer.text.sourceText;
             // Check if the sourceText property has keys.
             // If it has keys, the font can change over time and we need to check all keys for their font
             if (sourceText.numKeys) {
                 var oldLocation = "";
                 for (var k = 1; k <= sourceText.numKeys; k++) {
-                    var textDocument = sourceText.keyValue(k);
+                    const textDocument = sourceText.keyValue(k);
                     var fontPostScriptName = "";
                     try {
                         fontPostScriptName = textDocument.fontObject.postScriptName;
                     } catch (e) {
                         logger.error(e.message, jobTemplateHelperFile);
                     }
-                    var fontLocation = textDocument.fontLocation || getLocationForFont(fontPostScriptName);
+                    const fontLocation = textDocument.fontLocation || getLocationForFont(fontPostScriptName);
                     if (oldLocation == fontLocation) {
                         continue;
                     }
@@ -1477,21 +1476,21 @@ function getFontsFromFileLegacy() {
                         );
                         continue;
                     }
-                    var fontName = createFontFilename(fontLocation, fontPostScriptName);
+                    const fontName = createFontFilename(fontLocation, fontPostScriptName);
                     if (fontName) {
                         fontLocations.push([fontName, fontLocation]);
                     }
                     oldLocation = fontLocation;
                 }
             } else {
-                var textDocument = sourceText.value;
+                const textDocument = sourceText.value;
                 var fontPostScriptName = "";
                 try {
                     fontPostScriptName = textDocument.fontObject.postScriptName;
                 } catch (e) {
                     logger.error(e.message, jobTemplateHelperFile);
                 }
-                var fontLocation = textDocument.fontLocation || getLocationForFont(fontPostScriptName);
+                const fontLocation = textDocument.fontLocation || getLocationForFont(fontPostScriptName);
                 if (!fontLocation) {
                     adcAlert(
                         "The path to the font " + fontPostScriptName + " couldn't be identified.\n" +
@@ -1499,7 +1498,7 @@ function getFontsFromFileLegacy() {
                     );
                     continue;
                 }
-                var fontName = createFontFilename(fontLocation, fontPostScriptName);
+                const fontName = createFontFilename(fontLocation, fontPostScriptName);
                 if (fontName) {
                     fontLocations.push([fontName, fontLocation]);
                 }
@@ -1516,21 +1515,21 @@ function getFontsFromFileLegacy() {
  **/
 function generateFontReferences(fontPaths) {
     // Create a temp folder where all used fonts get gathered
-    var _tempFontsFolder = dcUtil.normPath(dcUtil.getTempFolder() + '/' + "tempFonts");
-    var formattedFontsPaths = [];
-    var tempFontPath = new Folder(_tempFontsFolder);
+    const _tempFontsFolder = dcUtil.normPath(dcUtil.getTempFolder() + '/' + "tempFonts");
+    const formattedFontsPaths = [];
+    const tempFontPath = new Folder(_tempFontsFolder);
     if (!tempFontPath.exists) {
         tempFontPath.create();
     }
 
     // Copy the font files to the temp folder
     for (var i = 0; i < fontPaths.length; i++) {
-        var fontName = fontPaths[i][0];
-        var fontLocation = fontPaths[i][1];
+        const fontName = fontPaths[i][0];
+        const fontLocation = fontPaths[i][1];
 
-        var fontFile = File(fontLocation);
-        var _tempFontPath = dcUtil.normPath(_tempFontsFolder + "/" + fontName);
-        var fontCopied = fontFile.copy(_tempFontPath);
+        const fontFile = File(fontLocation);
+        const _tempFontPath = dcUtil.normPath(_tempFontsFolder + "/" + fontName);
+        const fontCopied = fontFile.copy(_tempFontPath);
         // Check if font file was actually copied.
         if (fontCopied) {
             formattedFontsPaths.push(_tempFontPath);
@@ -1591,7 +1590,7 @@ function UpdateRenderQueueIndices(renderQueueIndex, selectionItem) {
         return false;
     }
 
-    var renderQueueItem = app.project.renderQueue.item(renderQueueIndex);
+    const renderQueueItem = app.project.renderQueue.item(renderQueueIndex);
     if (renderQueueItem == null || renderQueueItem.comp.id != selectionItem.compId) {
         adcAlert(
             "Error: Render Queue has changed since last refresh. Refreshing panel now. Please try again.", true
@@ -1611,7 +1610,7 @@ function UpdateRenderQueueIndices(renderQueueIndex, selectionItem) {
 // Validate that our outputModule is set
 function validateRenderQueueItemOutputModule(renderQueueItem) {
     // We have already validated that we don't have more than 1 `numOutputModels`
-    var outputModule = renderQueueItem.outputModule(1).file;
+    const outputModule = renderQueueItem.outputModule(1).file;
     if (outputModule == null) {
         adcAlert("Error: Render Queue Item " + renderQueueItem.comp.name + " does not have its output file set", true);
         return false;
@@ -1688,13 +1687,13 @@ function validateRenderQueueItemOutputModule(renderQueueItem) {
 // Generates the job bundle and copies files from our template source folder into it
 function generateBundle() {
     // create the job bundle folder
-    var bundleRoot = new Folder(
+    const bundleRoot = new Folder(
         dcUtil.getTempFolder() + "/DeadlineCloudAESubmission"
     ); //forward slash works on all operating systems
     recursiveDelete(bundleRoot);
     bundleRoot.create();
 
-    var jobTemplateSourceFolder = new Folder(
+    const jobTemplateSourceFolder = new Folder(
         scriptFolder + "/DeadlineCloudSubmitter_Assets/JobTemplate"
     );
     if (!jobTemplateSourceFolder.exists) {
@@ -1732,11 +1731,11 @@ function generateBundle() {
             )
         );
     }
-    var stepParametersContents = readFile(path);
+    const stepParametersContents = readFile(path);
     // Parse the template string to a JSON object
-    var stepParametersObject = JSON.parse(stepParametersContents);
+    const stepParametersObject = JSON.parse(stepParametersContents);
 
-    var updatedParameterDefinitions = []
+    const updatedParameterDefinitions = []
     for (var i=0;i<stepParametersObject.parameterDefinitions.length;i++) {
         if (JobParams.indexOf(stepParametersObject.parameterDefinitions[i].name) !== -1) {
             // Don't modify these values
@@ -1781,26 +1780,25 @@ function generateBundle() {
  **/
 function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrameRendering, maxCpuUsagePercentage) {
     const submitBundleFile = "SubmitButton.jsx";
-    var renderQueueItems = []
+    const renderQueueItems = []
 
     // Check to make sure that all of our selection indices are correct
     for (var i=0;i<selection.length;i++) {
-        var selectionItem = selection[i];
-        var renderQueueIndex = selectionItem.renderQueueIndex;
-        var renderQueueItem;
+        const selectionItem = selection[i];
+        const renderQueueIndex = selectionItem.renderQueueIndex;
 
         // because our panel is updated independently of the render queue, the two may become out of sync
         // we need to verify that the selection made actually matches what is in the render queue
         if (!UpdateRenderQueueIndices(renderQueueIndex, selectionItem)) {
             return;
         }
-        renderQueueItem = app.project.renderQueue.item(renderQueueIndex);
+        const renderQueueItem = app.project.renderQueue.item(renderQueueIndex);
         renderQueueItems.push([renderQueueItem, renderQueueIndex])
     }
 
     // We have valid selections check for saving
     if (app.project.dirty) {
-        var confirmation = confirm("Project must be saved before submitting. Continue?");
+        const confirmation = confirm("Project must be saved before submitting. Continue?");
         if (!confirmation) {
             return;
         } else {
@@ -1817,8 +1815,8 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
     const aftereffectsVersion = app.version[0] + app.version[1];
     logger.debug("The major version of After Effects is " + aftereffectsVersion, submitBundleFile);
 
-    var bundle = generateBundle();
-    var jobAssetReferences = {
+    const bundle = generateBundle();
+    const jobAssetReferences = {
         assetReferences: {
             inputs: {
                 directories: [],
@@ -1830,7 +1828,7 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
             referencedPaths: [],
         },
     };
-    var jobParameterDefinitions = {
+    const jobParameterDefinitions = {
       "parameterDefinitions": [
         {
           "name": "ProjectFile",
@@ -1881,7 +1879,7 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
         }
       ]
     }
-    var jobParameterValues = {
+    const jobParameterValues = {
         parameterValues: [
             {
                 name: "deadline:targetTaskRunStatus",
@@ -1906,42 +1904,42 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
         ]
     }
 
-    var template = loadDefaultJobTemplate(bundle.fsName, submitBundleFile);
+    const template = loadDefaultJobTemplate(bundle.fsName, submitBundleFile);
     template.steps = []
     template.parameterDefinitions = jobParameterDefinitions.parameterDefinitions
 
     // generateTemplate(bundle.fsName, isImageSeq, compName, submitBundleFile);
-    var stepOutputFolderParameters = [];
+    const stepOutputFolderParameters = [];
 
     for (var i=0;i<renderQueueItems.length;i++) {
-        var renderQueueItem = renderQueueItems[i][0];
-        var renderQueueIndex = renderQueueItems[i][1];
+        const renderQueueItem = renderQueueItems[i][0];
+        const renderQueueIndex = renderQueueItems[i][1];
 
         if (!validateRenderQueueItemOutputModule(renderQueueItem)) {
             return;
         }
 
-        var stepFramesPerTask = parseInt(selectionSettings.get(selectionItem.compId).framesPerTask() || framesPerTask)
-        var stepMaxCpuUsagePercentage = parseInt(selectionSettings.get(selectionItem.compId).maxCpuUsagePercentage() || maxCpuUsagePercentage)
-        var stepMultiFrameRendering = selectionSettings.get(selectionItem.compId).multiFrameRendering() || multiFrameRendering
+        const stepFramesPerTask = parseInt(selectionSettings.get(selectionItem.compId).framesPerTask() || framesPerTask)
+        const stepMaxCpuUsagePercentage = parseInt(selectionSettings.get(selectionItem.compId).maxCpuUsagePercentage() || maxCpuUsagePercentage)
+        const stepMultiFrameRendering = selectionSettings.get(selectionItem.compId).multiFrameRendering() || multiFrameRendering
 
-        var outputModule = renderQueueItem.outputModule(1).file;
-        var outputPath = outputModule.fsName;
-        var outputFile = outputModule.name;
-        var outputFolder = outputModule.parent.fsName;
+        const outputModule = renderQueueItem.outputModule(1).file;
+        const outputPath = outputModule.fsName;
+        const outputFile = outputModule.name;
+        const outputFolder = outputModule.parent.fsName;
 
         logger.debug("OutputPath is: " + outputPath, submitBundleFile);
         logger.debug("OutputFile is: " + outputFile, submitBundleFile);
         logger.debug("OutputFolder is: " + outputFolder, submitBundleFile);
 
-        var renderSettings = renderQueueItem.getSettings(GetSettingsFormat.STRING_SETTABLE);
-        var startFrame = Number(
+        const renderSettings = renderQueueItem.getSettings(GetSettingsFormat.STRING_SETTABLE);
+        const startFrame = Number(
             timeToFrames(
                 Number(renderSettings["Time Span Start"]),
                 Number(renderSettings["Use this frame rate"])
             )
         );
-        var endFrame =
+        const endFrame =
             Number(
                 timeToFrames(
                     Number(renderSettings["Time Span End"]),
@@ -1949,17 +1947,17 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
                 )
             ) - 1; // end frame is inclusive so we subtract 1
 
-        var dependencies = findJobAttachments(renderQueueItem.comp); // list of filenames
-        var compName = dcUtil.removeIllegalCharacters(renderQueueItem.comp.name);
+        const dependencies = findJobAttachments(renderQueueItem.comp); // list of filenames
+        const compName = dcUtil.removeIllegalCharacters(renderQueueItem.comp.name);
 
-        var sanitizedOutputFolder = sanitizeFilePath(outputFolder);
+        const sanitizedOutputFolder = sanitizeFilePath(outputFolder);
 
-        var outputFileNameNoRegex = getFileNameNoRegex(outputFile);
-        var extension = getFileExtension(outputFileNameNoRegex);
+        const outputFileNameNoRegex = getFileNameNoRegex(outputFile);
+        const extension = getFileExtension(outputFileNameNoRegex);
         logger.debug("extension set to: " + extension, submitBundleFile);
-        var isImageSeq = isImageOutput(extension);
+        const isImageSeq = isImageOutput(extension);
 
-        var sanitizedOutputFileName = dcUtil.removePercentageFromFileName(outputFileNameNoRegex);
+        const sanitizedOutputFileName = dcUtil.removePercentageFromFileName(outputFileNameNoRegex);
         logger.debug("sanitizedOutputFileName is " + sanitizedOutputFileName, submitBundleFile);
 
         // Push step asset references
@@ -1968,7 +1966,7 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
         }
         jobAssetReferences.assetReferences.outputs.directories.push(sanitizedOutputFolder)
 
-        var parameterValues = generateParameterValuesForStep(
+        const parameterValues = generateParameterValuesForStep(
             compName,
             renderQueueIndex,
             sanitizedOutputFolder,
@@ -1989,16 +1987,16 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
 
         stepOutputFolderParameters.push("{{Param." + compName + "_OutputDir}}")
 
-        var stepTemplate = generateStepTemplateFragment(bundle.fsName, isImageSeq, compName)
+        const stepTemplate = generateStepTemplateFragment(bundle.fsName, isImageSeq, compName)
         for (var s=0;s<stepTemplate.steps.length;s++) {
             template.steps.push(stepTemplate.steps[s])
         }
-        var stepParameters = generateStepParameterFragment(bundle.fsName, isImageSeq, compName)
+        const stepParameters = generateStepParameterFragment(bundle.fsName, isImageSeq, compName)
         for (var p=0;p<stepParameters.parameterDefinitions.length;p++) {
             var parameterExists = false;
             for (var tpd=0;tpd<template.parameterDefinitions.length;tpd++) {
-                var templateParameterDefinition = template.parameterDefinitions[tpd];
-                var stepParameterDefinition = stepParameters.parameterDefinitions[p];
+                const templateParameterDefinition = template.parameterDefinitions[tpd];
+                const stepParameterDefinition = stepParameters.parameterDefinitions[p];
                 if (templateParameterDefinition.name == stepParameterDefinition.name) {
                     parameterExists = true
                     break
@@ -2009,7 +2007,7 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
             }
         }
     }
-    var generatedJobEnvironment = generateJobEnvironmentFragment(bundle.fsName, stepOutputFolderParameters.join(","))
+    const generatedJobEnvironment = generateJobEnvironmentFragment(bundle.fsName, stepOutputFolderParameters.join(","))
     template.jobEnvironments = generatedJobEnvironment.jobEnvironments
 
     writeFile(bundle.fsName + "/parameter_values.json",JSON.stringify(jobParameterValues, null, 4));
@@ -2018,14 +2016,14 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
     logger.debug("Wrote the template.json file to the bundle folder " + bundle.fsName, submitBundleFile);
 
     // Runs a bat script that requires extra permissions but will not block the After Effects UI while submitting.
-    var logFile = new File(dcUtil.getTempFolder() + "/submitter_output.log");
+    const logFile = new File(dcUtil.getTempFolder() + "/submitter_output.log");
     logFile.open("w"); // Erase contents of active log file
     logFile.close();
     var submitScriptContents = "";
     var output = "";
     var cmd = "";
     if ($.os.toString().slice(0, 7) === "Windows") {
-        var tempBatFile = new File(
+        const tempBatFile = new File(
             dcUtil.getTempFolder() + "/DeadlineCloudAESubmission.bat"
         );
         cmd =
@@ -2048,7 +2046,7 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
     } else {
         // Execute the command using a bash in the interactive mode so it loads the bash profile to set
         // the PATH correctly.
-        var shellPath = $.getenv("SHELL") || "/bin/bash";
+        const shellPath = $.getenv("SHELL") || "/bin/bash";
         cmd =
             'deadline bundle gui-submit \\\"' + bundle.fsName + '\\\" --output json --install-gui --submitter-name=\\\\\\\"After Effects\\\\\\\"';
         submitScriptContents = shellPath + " -i -c \\\"" + cmd + "\\\" && exit";
@@ -2646,32 +2644,32 @@ if (typeof JSON !== "object") {
  * Builds the Script UI for the Deadline Cloud Submitter
  **/
 function buildUI(thisObj) {
-    var submitterPanel = (thisObj instanceof Panel) ? thisObj : new Window("palette", "Submit to AWS Deadline Cloud", undefined, {
+    const submitterPanel = (thisObj instanceof Panel) ? thisObj : new Window("palette", "Submit to AWS Deadline Cloud", undefined, {
         resizable: true
     });
 
-    var uiSettingsState = new UiSettingsState();
+    const uiSettingsState = new UiSettingsState();
 
-    var root = submitterPanel.add("group");
+    const root = submitterPanel.add("group");
     root.orientation = "column";
     root.alignment = ['fill', 'fill'];
     root.alignChildren = ['fill', 'top']
-    var logoGroup = root.add("group");
+    const logoGroup = root.add("group");
     logoGroup.alignment = 'left';
     logoGroup.add("image", undefined, logoData());
-    var logoText = logoGroup.add("statictext", undefined, "AWS Deadline Cloud");
-    var arialBold24Font = ScriptUI.newFont("Arial", ScriptUI.FontStyle.BOLD, 64);
+    const logoText = logoGroup.add("statictext", undefined, "AWS Deadline Cloud");
+    const arialBold24Font = ScriptUI.newFont("Arial", ScriptUI.FontStyle.BOLD, 64);
     logoText.graphics.font = arialBold24Font;
-    var headerButtonGroup = root.add("group");
-    var focusRenderQueueButton = headerButtonGroup.add("button", undefined, "Open Render Queue");
+    const headerButtonGroup = root.add("group");
+    const focusRenderQueueButton = headerButtonGroup.add("button", undefined, "Open Render Queue");
     focusRenderQueueButton.onClick = function() {
         // we quickly toggle the window to make sure it gains focus
         // sometimes this causes a flicker
         app.project.renderQueue.showWindow(false);
         app.project.renderQueue.showWindow(true);
     }
-    var refreshButton = headerButtonGroup.add("button", undefined, "Refresh");
-    var listGroup = root.add("panel", undefined, "");
+    const refreshButton = headerButtonGroup.add("button", undefined, "Refresh");
+    const listGroup = root.add("panel", undefined, "");
     listGroup.alignment = ['fill', 'fill'];
     listGroup.alignChildren = ['fill', 'fill']
     var list = null;
@@ -2714,7 +2712,7 @@ function buildUI(thisObj) {
         }
         app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK, framesPerTaskTextBox.text);
         for (var s=0;s<list.selection.length;s++) {
-            var selectionItem = list.selection[s];
+            const selectionItem = list.selection[s];
             uiSettingsState.get(selectionItem.compId).setFramesPerTask(framesPerTaskTextBox.text)
         }
     }
@@ -2755,7 +2753,7 @@ function buildUI(thisObj) {
         }
         app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE, maxCpuUsagePercentageTextBox.text);
         for (var s=0;s<list.selection.length;s++) {
-            var selectionItem = list.selection[s];
+            const selectionItem = list.selection[s];
             uiSettingsState.get(selectionItem.compId).setMaxCpuUsagePercentage(maxCpuUsagePercentageTextBox.text)
         }
     }
@@ -2777,7 +2775,7 @@ function buildUI(thisObj) {
 
         maxCpuUsagePercentageTextBox.enabled = isMfrChecked;
         for (var s=0;s<list.selection.length;s++) {
-            var selectionItem = list.selection[s];
+            const selectionItem = list.selection[s];
             uiSettingsState.get(selectionItem.compId).setMultiFrameRendering(settingsStateValue)
         }
     }
@@ -2874,8 +2872,8 @@ function buildUI(thisObj) {
         if (rqi.numOutputModules == 1) {
             var outputModule = rqi.outputModule(1).file;
             if (outputModule != null) {
-                var outputFileNameNoRegex = getFileNameNoRegex(outputModule.name);
-                var extension = getFileExtension(outputFileNameNoRegex);
+                const outputFileNameNoRegex = getFileNameNoRegex(outputModule.name);
+                const extension = getFileExtension(outputFileNameNoRegex);
                 return isImageOutput(extension);
             }
         }
@@ -2884,15 +2882,16 @@ function buildUI(thisObj) {
 
     // Check for duplicate names
     function checkForInvalidCompositionNames(selection) {
-        var names = [];
-        var duplicateNames = [];
+        const names = [];
+        const duplicateNames = [];
         for (var i=0;i<selection.length;i++) {
-            var selectionItem = selection[i];
-            var renderQueueItem = app.project.renderQueue.item(selectionItem.renderQueueIndex);
-            var compName = dcUtil.removeIllegalCharacters(renderQueueItem.comp.name);
+            const selectionItem = selection[i];
+            const renderQueueItem = app.project.renderQueue.item(selectionItem.renderQueueIndex);
+            const compName = dcUtil.removeIllegalCharacters(renderQueueItem.comp.name);
             if (names.indexOf(compName) !== -1) {
                 duplicateNames.push(renderQueueItem.comp.name);
             }
+            names.push(compName);
         }
         if (duplicateNames.length !== 0) {
             var message = "Selected submission items must have unique names. Found (" + duplicateNames.length * 2 + ") compositions with the same name: "
@@ -2905,7 +2904,7 @@ function buildUI(thisObj) {
         return false
     }
 
-    var submitButton = controlsGroup.add("button", undefined, "Submit");
+    const submitButton = controlsGroup.add("button", undefined, "Submit");
     submitButton.onClick = function() {
         if (getPythonExecutable()) {
             const multiFrameRendering = mfrCheckBox.value ? "ON" : "OFF";
@@ -2926,8 +2925,8 @@ function buildUI(thisObj) {
     submitButton.enabled = false;
 
     function updateList() {
-        var bounds = list == null ? undefined : list.bounds;
-        var newList = listGroup.add("listbox", bounds, "", {
+        const bounds = list == null ? undefined : list.bounds;
+        const newList = listGroup.add("listbox", bounds, "", {
             multiselect: true,
             numberOfColumns: 4,
             showHeaders: true,
@@ -2937,27 +2936,27 @@ function buildUI(thisObj) {
         newList.preferredSize.height = 400
         newList.preferredSize.width = 500
         for (var i = 1; i <= app.project.renderQueue.numItems; i++) {
-            var rqi = app.project.renderQueue.item(i);
+            const rqi = app.project.renderQueue.item(i);
             if (rqi == null) {
                 continue;
             }
             if (rqi.status == RQItemStatus.RENDERING || rqi.status == RQItemStatus.WILL_CONTINUE || rqi.status == RQItemStatus.USER_STOPPED || rqi.status == RQItemStatus.ERR_STOPPED || rqi.status == RQItemStatus.DONE) {
                 continue;
             }
-            var item = newList.add('item', i.toString());
+            const item = newList.add('item', i.toString());
             item.renderQueueIndex = i;
             item.compId = rqi.comp.id;
             // Create a default entry for each comp as needed.
             uiSettingsState.get(item.compId)
             item.subItems[0].text = rqi.comp.name;
-            var renderSettings = rqi.getSettings(GetSettingsFormat.STRING_SETTABLE);
-            var startFrame = Number(timeToFrames(Number(renderSettings["Time Span Start"]), Number(renderSettings["Use this frame rate"])));
-            var endFrame = Number(timeToFrames(Number(renderSettings["Time Span End"]), Number(renderSettings["Use this frame rate"]))) - 1; //end frame is inclusive so we subtract 1
+            const renderSettings = rqi.getSettings(GetSettingsFormat.STRING_SETTABLE);
+            const startFrame = Number(timeToFrames(Number(renderSettings["Time Span Start"]), Number(renderSettings["Use this frame rate"])));
+            const endFrame = Number(timeToFrames(Number(renderSettings["Time Span End"]), Number(renderSettings["Use this frame rate"]))) - 1; //end frame is inclusive so we subtract 1
             item.subItems[1].text = startFrame == endFrame ? startFrame.toString() : startFrame + "-" + endFrame;
             if (rqi.numOutputModules <= 0) {
                 item.subItems[2].text = "<not set>";
             } else if (rqi.numOutputModules == 1) {
-                var outputFile = rqi.outputModule(1).file;
+                const outputFile = rqi.outputModule(1).file;
                 item.subItems[2].text = outputFile == null ? "<not set>" : outputFile.fsName;
             } else {
                 item.subItems[2].text = "<multiple output modules>";
@@ -2970,7 +2969,7 @@ function buildUI(thisObj) {
         list = newList;
 
         function onSelectionChange() {
-            var selection = list.selection;
+            const selection = list.selection;
             if (selection == null) {
                 updateList();
                 framesPerTaskTextBox.text = "";
@@ -2988,16 +2987,16 @@ function buildUI(thisObj) {
             if (selection.length !== 1) {
                 return
             }
-            var selectionItem = selection[0]
+            const selectionItem = selection[0]
             logger.warning("Selected Comp is: " + app.project.renderQueue.item(selectionItem.renderQueueIndex).comp.name);
-            var imageOutput = isRenderQueueItemImageOutput(app.project.renderQueue.item(selectionItem.renderQueueIndex))
+            const imageOutput = isRenderQueueItemImageOutput(app.project.renderQueue.item(selectionItem.renderQueueIndex))
             framesPerTaskTextBox.enabled = imageOutput
             mfrCheckBox.enabled = true
             maxCpuUsagePercentageTextBox.enabled = true
 
             framesPerTaskTextBox.text = selectionItem.subItems[1].text
 
-            var settings = uiSettingsState.get(selectionItem.compId)
+            const settings = uiSettingsState.get(selectionItem.compId)
             if (settings === undefined) {
                 logger.warning("Could not find settings for : " + selectionItem.compId);
                 return
@@ -3016,8 +3015,8 @@ function buildUI(thisObj) {
 
     updateList();
     if (list.selection != null && list.selection.length === 1) {
-        var selectionItem = list.selection[0]
-        var renderQueueItem = app.project.renderQueue.item(selectionItem.renderQueueIndex)
+        const selectionItem = list.selection[0]
+        const renderQueueItem = app.project.renderQueue.item(selectionItem.renderQueueIndex)
         framesPerTaskTextBox.enabled = isRenderQueueItemImageOutput(renderQueueItem)
     }
     refreshButton.onClick = updateList;
@@ -3038,7 +3037,7 @@ function buildUI(thisObj) {
 
 
 function isSecurityPrefSet() {
-    var securitySetting = app.preferences.getPrefAsLong(
+    const securitySetting = app.preferences.getPrefAsLong(
         "Main Pref Section",
         "Pref_SCRIPTING_FILE_NETWORK_SECURITY"
     );
@@ -3049,7 +3048,7 @@ if (isSecurityPrefSet()) {
     buildUI(this);
 } else {
     //Print an error message and instructions for changing security preferences
-    var submitterPanel =
+    const submitterPanel =
         this instanceof Panel ?
         this :
         new Window(
@@ -3060,11 +3059,11 @@ if (isSecurityPrefSet()) {
                 closeButton: true,
             }
         );
-    var root = submitterPanel.add("group");
+    const root = submitterPanel.add("group");
     root.orientation = "column";
     root.alignment = ["fill", "fill"];
     root.alignChildren = ["fill", "top"];
-    var errorText = root.add("statictext", undefined, "", {
+    const errorText = root.add("statictext", undefined, "", {
         multiline: true,
     });
     errorText.graphics.foregroundColor = errorText.graphics.newPen(
@@ -3073,7 +3072,7 @@ if (isSecurityPrefSet()) {
         1
     );
     errorText.text = "Update Script Permissions";
-    var errorText2 = root.add("statictext", undefined, "", {
+    const errorText2 = root.add("statictext", undefined, "", {
         multiline: true,
     });
     errorText2.text = [

@@ -2,32 +2,32 @@
  * Builds the Script UI for the Deadline Cloud Submitter
  **/
 function buildUI(thisObj) {
-    var submitterPanel = (thisObj instanceof Panel) ? thisObj : new Window("palette", "Submit to AWS Deadline Cloud", undefined, {
+    const submitterPanel = (thisObj instanceof Panel) ? thisObj : new Window("palette", "Submit to AWS Deadline Cloud", undefined, {
         resizable: true
     });
 
-    var uiSettingsState = new UiSettingsState();
+    const uiSettingsState = new UiSettingsState();
 
-    var root = submitterPanel.add("group");
+    const root = submitterPanel.add("group");
     root.orientation = "column";
     root.alignment = ['fill', 'fill'];
     root.alignChildren = ['fill', 'top']
-    var logoGroup = root.add("group");
+    const logoGroup = root.add("group");
     logoGroup.alignment = 'left';
     logoGroup.add("image", undefined, logoData());
-    var logoText = logoGroup.add("statictext", undefined, "AWS Deadline Cloud");
-    var arialBold24Font = ScriptUI.newFont("Arial", ScriptUI.FontStyle.BOLD, 64);
+    const logoText = logoGroup.add("statictext", undefined, "AWS Deadline Cloud");
+    const arialBold24Font = ScriptUI.newFont("Arial", ScriptUI.FontStyle.BOLD, 64);
     logoText.graphics.font = arialBold24Font;
-    var headerButtonGroup = root.add("group");
-    var focusRenderQueueButton = headerButtonGroup.add("button", undefined, "Open Render Queue");
+    const headerButtonGroup = root.add("group");
+    const focusRenderQueueButton = headerButtonGroup.add("button", undefined, "Open Render Queue");
     focusRenderQueueButton.onClick = function() {
         // we quickly toggle the window to make sure it gains focus
         // sometimes this causes a flicker
         app.project.renderQueue.showWindow(false);
         app.project.renderQueue.showWindow(true);
     }
-    var refreshButton = headerButtonGroup.add("button", undefined, "Refresh");
-    var listGroup = root.add("panel", undefined, "");
+    const refreshButton = headerButtonGroup.add("button", undefined, "Refresh");
+    const listGroup = root.add("panel", undefined, "");
     listGroup.alignment = ['fill', 'fill'];
     listGroup.alignChildren = ['fill', 'fill']
     var list = null;
@@ -70,7 +70,7 @@ function buildUI(thisObj) {
         }
         app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK, framesPerTaskTextBox.text);
         for (var s=0;s<list.selection.length;s++) {
-            var selectionItem = list.selection[s];
+            const selectionItem = list.selection[s];
             uiSettingsState.get(selectionItem.compId).setFramesPerTask(framesPerTaskTextBox.text)
         }
     }
@@ -111,7 +111,7 @@ function buildUI(thisObj) {
         }
         app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE, maxCpuUsagePercentageTextBox.text);
         for (var s=0;s<list.selection.length;s++) {
-            var selectionItem = list.selection[s];
+            const selectionItem = list.selection[s];
             uiSettingsState.get(selectionItem.compId).setMaxCpuUsagePercentage(maxCpuUsagePercentageTextBox.text)
         }
     }
@@ -133,7 +133,7 @@ function buildUI(thisObj) {
 
         maxCpuUsagePercentageTextBox.enabled = isMfrChecked;
         for (var s=0;s<list.selection.length;s++) {
-            var selectionItem = list.selection[s];
+            const selectionItem = list.selection[s];
             uiSettingsState.get(selectionItem.compId).setMultiFrameRendering(settingsStateValue)
         }
     }
@@ -141,10 +141,10 @@ function buildUI(thisObj) {
 
     function isRenderQueueItemImageOutput(renderQueueItem) {
         if (renderQueueItem.numOutputModules === 1) {
-            var outputModule = renderQueueItem.outputModule(1).file;
+            const outputModule = renderQueueItem.outputModule(1).file;
             if (outputModule != null) {
-                var outputFileNameNoRegex = getFileNameNoRegex(outputModule.name);
-                var extension = getFileExtension(outputFileNameNoRegex);
+                const outputFileNameNoRegex = getFileNameNoRegex(outputModule.name);
+                const extension = getFileExtension(outputFileNameNoRegex);
                 return isImageOutput(extension);
             }
         }
@@ -246,7 +246,7 @@ function buildUI(thisObj) {
         return false
     }
 
-    var submitButton = controlsGroup.add("button", undefined, "Submit");
+    const submitButton = controlsGroup.add("button", undefined, "Submit");
     submitButton.onClick = function() {
         if (getPythonExecutable()) {
             const multiFrameRendering = mfrCheckBox.value ? "ON" : "OFF";
@@ -267,8 +267,8 @@ function buildUI(thisObj) {
     submitButton.enabled = false;
 
     function updateList() {
-        var bounds = list == null ? undefined : list.bounds;
-        var newList = listGroup.add("listbox", bounds, "", {
+        const bounds = list == null ? undefined : list.bounds;
+        const newList = listGroup.add("listbox", bounds, "", {
             multiselect: true,
             numberOfColumns: 4,
             showHeaders: true,
@@ -278,27 +278,27 @@ function buildUI(thisObj) {
         newList.preferredSize.height = 400
         newList.preferredSize.width = 500
         for (var i = 1; i <= app.project.renderQueue.numItems; i++) {
-            var rqi = app.project.renderQueue.item(i);
+            const rqi = app.project.renderQueue.item(i);
             if (rqi == null) {
                 continue;
             }
             if (rqi.status == RQItemStatus.RENDERING || rqi.status == RQItemStatus.WILL_CONTINUE || rqi.status == RQItemStatus.USER_STOPPED || rqi.status == RQItemStatus.ERR_STOPPED || rqi.status == RQItemStatus.DONE) {
                 continue;
             }
-            var item = newList.add('item', i.toString());
+            const item = newList.add('item', i.toString());
             item.renderQueueIndex = i;
             item.compId = rqi.comp.id;
             // Create a default entry for each comp as needed.
             uiSettingsState.get(item.compId)
             item.subItems[0].text = rqi.comp.name;
-            var renderSettings = rqi.getSettings(GetSettingsFormat.STRING_SETTABLE);
-            var startFrame = Number(timeToFrames(Number(renderSettings["Time Span Start"]), Number(renderSettings["Use this frame rate"])));
-            var endFrame = Number(timeToFrames(Number(renderSettings["Time Span End"]), Number(renderSettings["Use this frame rate"]))) - 1; //end frame is inclusive so we subtract 1
+            const renderSettings = rqi.getSettings(GetSettingsFormat.STRING_SETTABLE);
+            const startFrame = Number(timeToFrames(Number(renderSettings["Time Span Start"]), Number(renderSettings["Use this frame rate"])));
+            const endFrame = Number(timeToFrames(Number(renderSettings["Time Span End"]), Number(renderSettings["Use this frame rate"]))) - 1; //end frame is inclusive so we subtract 1
             item.subItems[1].text = startFrame == endFrame ? startFrame.toString() : startFrame + "-" + endFrame;
             if (rqi.numOutputModules <= 0) {
                 item.subItems[2].text = "<not set>";
             } else if (rqi.numOutputModules == 1) {
-                var outputFile = rqi.outputModule(1).file;
+                const outputFile = rqi.outputModule(1).file;
                 item.subItems[2].text = outputFile == null ? "<not set>" : outputFile.fsName;
             } else {
                 item.subItems[2].text = "<multiple output modules>";
@@ -311,7 +311,7 @@ function buildUI(thisObj) {
         list = newList;
 
         function onSelectionChange() {
-            var selection = list.selection;
+            const selection = list.selection;
             if (selection == null) {
                 updateList();
                 framesPerTaskTextBox.text = "";
@@ -329,16 +329,16 @@ function buildUI(thisObj) {
             if (selection.length !== 1) {
                 return
             }
-            var selectionItem = selection[0]
+            const selectionItem = selection[0]
             logger.warning("Selected Comp is: " + app.project.renderQueue.item(selectionItem.renderQueueIndex).comp.name);
-            var imageOutput = isRenderQueueItemImageOutput(app.project.renderQueue.item(selectionItem.renderQueueIndex))
+            const imageOutput = isRenderQueueItemImageOutput(app.project.renderQueue.item(selectionItem.renderQueueIndex))
             framesPerTaskTextBox.enabled = imageOutput
             mfrCheckBox.enabled = true
             maxCpuUsagePercentageTextBox.enabled = true
 
             framesPerTaskTextBox.text = selectionItem.subItems[1].text
 
-            var settings = uiSettingsState.get(selectionItem.compId)
+            const settings = uiSettingsState.get(selectionItem.compId)
             if (settings === undefined) {
                 logger.warning("Could not find settings for : " + selectionItem.compId);
                 return
@@ -357,8 +357,8 @@ function buildUI(thisObj) {
 
     updateList();
     if (list.selection != null && list.selection.length === 1) {
-        var selectionItem = list.selection[0]
-        var renderQueueItem = app.project.renderQueue.item(selectionItem.renderQueueIndex)
+        const selectionItem = list.selection[0]
+        const renderQueueItem = app.project.renderQueue.item(selectionItem.renderQueueIndex)
         framesPerTaskTextBox.enabled = isRenderQueueItemImageOutput(renderQueueItem)
     }
     refreshButton.onClick = updateList;
