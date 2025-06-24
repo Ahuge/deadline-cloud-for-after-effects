@@ -702,7 +702,7 @@ function __generateUtil() {
          */
         // If submit layers pressed -> itemName is not comp name and therefore comp will not be found with render command
         // Check if itemName is an available comp in the project, if not, it is a layer submission
-        const comp = itemName;
+        var comp = itemName;
         const compList = [];
         for (var i = 1; i <= app.project.rootFolder.items.length; i++) {
             const item = app.project.rootFolder.items[i];
@@ -2649,8 +2649,8 @@ function populateListBoxItem(item, renderQueueItem, index) {
 function refreshList(listBox, uiSettingsState) {
     listBox.removeAll();
     const framesPerTask = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK) || "50"
-    const multiFrameRendering = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING) === "true"
-    const maxCpuUsagePercentage = "90" // app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE)
+    const multiFrameRendering = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING)
+    const maxCpuUsagePercentage = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE)
 
     const InvalidRenderQueueItemStatuses = [
         RQItemStatus.RENDERING,
