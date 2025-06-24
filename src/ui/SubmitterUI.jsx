@@ -30,6 +30,61 @@ if (!app.settings.haveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MA
 }
 
 
+function populateListBoxItem(item, renderQueueItem, index) {
+    item.renderQueueIndex = index;
+    item.compId = renderQueueItem.comp.id;
+    item.subItems[0].text = renderQueueItem.comp.name;
+
+    const renderSettings = renderQueueItem.getSettings(GetSettingsFormat.STRING_SETTABLE);
+    const startFrame = Number(timeToFrames(Number(renderSettings["Time Span Start"]), Number(renderSettings["Use this frame rate"])));
+    const endFrame = Number(timeToFrames(Number(renderSettings["Time Span End"]), Number(renderSettings["Use this frame rate"]))) - 1; //end frame is inclusive so we subtract 1
+
+    item.subItems[1].text = startFrame == endFrame ? startFrame.toString() : startFrame + "-" + endFrame;
+    if (renderQueueItem.numOutputModules <= 0) {
+        item.subItems[2].text = "<not set>";
+    } else if (renderQueueItem.numOutputModules == 1) {
+        const outputFile = renderQueueItem.outputModule(1).file;
+        item.subItems[2].text = outputFile == null ? "<not set>" : outputFile.fsName;
+    } else {
+        item.subItems[2].text = "<multiple output modules>";
+    }
+}
+
+
+function refreshList(listBox, uiSettingsState) {
+    listBox.removeAll();
+    const framesPerTask = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK) || "50"
+    const multiFrameRendering = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING)
+    const maxCpuUsagePercentage = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE)
+
+    const InvalidRenderQueueItemStatuses = [
+        RQItemStatus.RENDERING,
+        RQItemStatus.WILL_CONTINUE,
+        RQItemStatus.USER_STOPPED,
+        RQItemStatus.ERR_STOPPED,
+        RQItemStatus.DONE
+    ]
+    for (var index=1;index <= app.project.renderQueue.numItems; index++) {
+        var renderQueueItem = app.project.renderQueue.item(index);
+        if (renderQueueItem == null) {
+            continue;
+        }
+
+        if (InvalidRenderQueueItemStatuses.indexOf(renderQueueItem.status) !== -1) {
+            // Status is in InvalidRenderQueueItemStatuses.
+            continue;
+        }
+
+        var item = listBox.add('item', index.toString());
+        populateListBoxItem(item, renderQueueItem, index);
+        // TODO: Value
+
+        uiSettingsState.create(item.compId, framesPerTask, multiFrameRendering, maxCpuUsagePercentage);
+    }
+
+    listBox.selection = null;
+}
+
 /**
  * Builds the Script UI for the Deadline Cloud Submitter
  **/
@@ -62,7 +117,61 @@ function buildUI(thisObj) {
     const listGroup = root.add("panel", undefined, "");
     listGroup.alignment = ['fill', 'fill'];
     listGroup.alignChildren = ['fill', 'fill']
-    var list = null;
+
+    const bounds = list == null ? undefined : list.bounds;
+    var list = listGroup.add("listbox", bounds, "", {
+        multiselect: true,
+        numberOfColumns: 4,
+        showHeaders: true,
+        columnTitles: ['#', 'Name', 'Frames', 'Output Path'],
+        columnWidths: [32, 160, 120, 240],
+    });
+    list.preferredSize.height = 400;
+    list.preferredSize.width = 500;
+
+    function onSelectionChange() {
+        const selection = list.selection;
+        if (selection == null) {
+            refreshList(list, uiSettingsState);
+            framesPerTaskTextBox.text = "";
+            return;
+        }
+        submitButton.enabled = true;
+        submitButton.active = false;
+        submitButton.active = true;
+
+        // Disable everything
+        framesPerTaskTextBox.enabled = false
+        mfrCheckBox.enabled = false
+        maxCpuUsagePercentageTextBox.enabled = false
+
+        if (selection.length !== 1) {
+            return
+        }
+        const selectionItem = selection[0]
+        logger.warning("Selected Comp is: " + app.project.renderQueue.item(selectionItem.renderQueueIndex).comp.name);
+        const imageOutput = isRenderQueueItemImageOutput(app.project.renderQueue.item(selectionItem.renderQueueIndex))
+        framesPerTaskTextBox.enabled = imageOutput
+        mfrCheckBox.enabled = true
+        maxCpuUsagePercentageTextBox.enabled = true
+
+        framesPerTaskTextBox.text = selectionItem.subItems[1].text
+
+        const settings = uiSettingsState.get(selectionItem.compId)
+        if (settings === undefined) {
+            logger.warning("Could not find settings for : " + selectionItem.compId);
+            return
+        }
+
+        framesPerTaskTextBox.text = settings.framesPerTask() || selectionItem.subItems[1].text
+        mfrCheckBox.value = settings.multiFrameRendering()
+        maxCpuUsagePercentageTextBox.value = settings.maxCpuUsagePercentage()
+
+        maxCpuUsagePercentageTextBox.enabled = mfrCheckBox.value
+    }
+
+    list.onChange = onSelectionChange;
+
     const controlsGroup = root.add("group", undefined, "");
     controlsGroup.orientation = 'column';
     controlsGroup.alignment = ['fill', 'bottom'];
@@ -225,102 +334,15 @@ function buildUI(thisObj) {
     submitButton.alignment = 'right';
     submitButton.enabled = false;
 
-    function updateList() {
-        const bounds = list == null ? undefined : list.bounds;
-        const newList = listGroup.add("listbox", bounds, "", {
-            multiselect: true,
-            numberOfColumns: 4,
-            showHeaders: true,
-            columnTitles: ['#', 'Name', 'Frames', 'Output Path'],
-            columnWidths: [32, 160, 120, 240],
-        });
-        newList.preferredSize.height = 400
-        newList.preferredSize.width = 500
-        for (var i = 1; i <= app.project.renderQueue.numItems; i++) {
-            const rqi = app.project.renderQueue.item(i);
-            if (rqi == null) {
-                continue;
-            }
-            if (rqi.status == RQItemStatus.RENDERING || rqi.status == RQItemStatus.WILL_CONTINUE || rqi.status == RQItemStatus.USER_STOPPED || rqi.status == RQItemStatus.ERR_STOPPED || rqi.status == RQItemStatus.DONE) {
-                continue;
-            }
-            const item = newList.add('item', i.toString());
-            item.renderQueueIndex = i;
-            item.compId = rqi.comp.id;
-            // Create a default entry for each comp as needed.
-            uiSettingsState.get(item.compId)
-            item.subItems[0].text = rqi.comp.name;
-            const renderSettings = rqi.getSettings(GetSettingsFormat.STRING_SETTABLE);
-            const startFrame = Number(timeToFrames(Number(renderSettings["Time Span Start"]), Number(renderSettings["Use this frame rate"])));
-            const endFrame = Number(timeToFrames(Number(renderSettings["Time Span End"]), Number(renderSettings["Use this frame rate"]))) - 1; //end frame is inclusive so we subtract 1
-            item.subItems[1].text = startFrame == endFrame ? startFrame.toString() : startFrame + "-" + endFrame;
-            if (rqi.numOutputModules <= 0) {
-                item.subItems[2].text = "<not set>";
-            } else if (rqi.numOutputModules == 1) {
-                const outputFile = rqi.outputModule(1).file;
-                item.subItems[2].text = outputFile == null ? "<not set>" : outputFile.fsName;
-            } else {
-                item.subItems[2].text = "<multiple output modules>";
-            }
-        }
-
-        if (list != null) {
-            listGroup.remove(list);
-        }
-        list = newList;
-
-        function onSelectionChange() {
-            const selection = list.selection;
-            if (selection == null) {
-                updateList();
-                framesPerTaskTextBox.text = "";
-                return;
-            }
-            submitButton.enabled = true;
-            submitButton.active = false;
-            submitButton.active = true;
-
-            // Disable everything
-            framesPerTaskTextBox.enabled = false
-            mfrCheckBox.enabled = false
-            maxCpuUsagePercentageTextBox.enabled = false
-
-            if (selection.length !== 1) {
-                return
-            }
-            const selectionItem = selection[0]
-            logger.warning("Selected Comp is: " + app.project.renderQueue.item(selectionItem.renderQueueIndex).comp.name);
-            const imageOutput = isRenderQueueItemImageOutput(app.project.renderQueue.item(selectionItem.renderQueueIndex))
-            framesPerTaskTextBox.enabled = imageOutput
-            mfrCheckBox.enabled = true
-            maxCpuUsagePercentageTextBox.enabled = true
-
-            framesPerTaskTextBox.text = selectionItem.subItems[1].text
-
-            const settings = uiSettingsState.get(selectionItem.compId)
-            if (settings === undefined) {
-                logger.warning("Could not find settings for : " + selectionItem.compId);
-                return
-            }
-
-            framesPerTaskTextBox.text = settings.framesPerTask() || selectionItem.subItems[1].text
-            mfrCheckBox.value = settings.multiFrameRendering()
-            maxCpuUsagePercentageTextBox.value = settings.maxCpuUsagePercentage()
-
-            maxCpuUsagePercentageTextBox.enabled = mfrCheckBox.value
-        }
-
-        list.onChange = onSelectionChange;
-        list.selection = null;
-    }
-
-    updateList();
+    refreshList(list, uiSettingsState);
     if (list.selection != null && list.selection.length === 1) {
         const selectionItem = list.selection[0]
         const renderQueueItem = app.project.renderQueue.item(selectionItem.renderQueueIndex)
         framesPerTaskTextBox.enabled = isRenderQueueItemImageOutput(renderQueueItem)
     }
-    refreshButton.onClick = updateList;
+    refreshButton.onClick = function() {
+        refreshList(list, uiSettingsState);
+    }
 
     submitterPanel.layout.layout(true);
 
