@@ -155,6 +155,7 @@ function buildUI(thisObj) {
         mfrCheckBox.enabled = true
         maxCpuUsagePercentageTextBox.enabled = true
 
+        logger.debug("    Setting framesPerTaskTextBox.text to: " + selectionItem.subItems[1].text);
         framesPerTaskTextBox.text = selectionItem.subItems[1].text
 
         const settings = uiSettingsState.get(selectionItem.compId)
@@ -163,9 +164,14 @@ function buildUI(thisObj) {
             return
         }
 
-        framesPerTaskTextBox.text = settings.framesPerTask() || selectionItem.subItems[1].text
+        if (imageOutput === true) {
+            logger.debug("    Setting framesPerTaskTextBox.text to: " + (settings.framesPerTask() || selectionItem.subItems[1].text));
+            framesPerTaskTextBox.text = settings.framesPerTask() || selectionItem.subItems[1].text
+        }
+        logger.debug("    Setting mfrCheckBox.value to: " + settings.multiFrameRendering());
         mfrCheckBox.value = settings.multiFrameRendering()
-        maxCpuUsagePercentageTextBox.value = settings.maxCpuUsagePercentage()
+        logger.debug("    Setting maxCpuUsagePercentageTextBox.text to: " + settings.maxCpuUsagePercentage());
+        maxCpuUsagePercentageTextBox.text = settings.maxCpuUsagePercentage()
 
         maxCpuUsagePercentageTextBox.enabled = mfrCheckBox.value
     }
@@ -210,6 +216,9 @@ function buildUI(thisObj) {
             framesPerTaskTextBox.text = newFramesPerTaskValue;
         }
         app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK, framesPerTaskTextBox.text);
+        if (list.selection == null) {
+            return;
+        }
         for (var s=0;s<list.selection.length;s++) {
             const selectionItem = list.selection[s];
             uiSettingsState.get(selectionItem.compId).setFramesPerTask(framesPerTaskTextBox.text)
