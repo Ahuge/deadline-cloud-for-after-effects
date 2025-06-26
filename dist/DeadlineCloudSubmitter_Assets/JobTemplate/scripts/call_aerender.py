@@ -27,6 +27,7 @@ def main():
     parser.add_argument("--index", type=int, help="The starting frame of the chunk")
     parser.add_argument("--multi-frame-rendering", type=str, default="OFF", help="Multi-frame render (MFR)")
     parser.add_argument("--max-cpu-usage-percentage", type=int, default=90, help="Specifies the desired maximum CPU percentage power to use during rendering. Value is ignored if MFR is OFF")
+    parser.add_argument("--ignore-missing-dependencies", type=str, default="OFF", help="Missing dependencies checking")
 
     args = parser.parse_args()
     print(f"Args: {args}", flush=True)
@@ -78,6 +79,8 @@ def main():
         args.multi_frame_rendering,
         str(args.max_cpu_usage_percentage),
     ]
+    if args.ignore_missing_dependencies == "ON":
+        render_args.append("-continueOnMissingFootage")
 
     if "," not in args.outputpath:
         render_args.extend(["-output", f'"{args.outputpath}"'])

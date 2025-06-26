@@ -1092,6 +1092,7 @@ function parameterValues(
     chunkSize,
     multiFrameRendering,
     maxCpuUsagePercentage,
+    ignoreMissingDependencies,
     prefix
 ) {
     const parameterValuesList = [{
@@ -1126,6 +1127,12 @@ function parameterValues(
             name: prefix + "_ChunkSize",
             value: chunkSize,
         });
+    }
+    if (ignoreMissingDependencies) {
+        parameterValuesList.push({
+            name: prefix + "_IgnoreMissingDependencies",
+            value: ignoreMissingDependencies === true ? "ON" : "OFF",
+        })
     }
     return {
         parameterValues: parameterValuesList
@@ -1617,6 +1624,7 @@ function generateParameterValuesForStep(
     chunkSize,
     multiFrameRendering,
     maxCpuUsagePercentage,
+    stepIgnoreMissingDependencies,
 ) {
     return parameterValues(
         renderQueueIndex,
@@ -1629,6 +1637,7 @@ function generateParameterValuesForStep(
         chunkSize,
         multiFrameRendering,
         maxCpuUsagePercentage,
+        stepIgnoreMissingDependencies,
         prefix,
     )
 }
@@ -1946,7 +1955,8 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
             endFrame,
             stepFramesPerTask,
             stepMultiFrameRendering,
-            stepMaxCpuUsagePercentage
+            stepMaxCpuUsagePercentage,
+            stepIgnoreMissingDependencies
         )
 
         for (var p=0;p<parameterValues.parameterValues.length;p++) {

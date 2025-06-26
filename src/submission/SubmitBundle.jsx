@@ -64,6 +64,7 @@ function generateParameterValuesForStep(
     chunkSize,
     multiFrameRendering,
     maxCpuUsagePercentage,
+    stepIgnoreMissingDependencies,
 ) {
     return parameterValues(
         renderQueueIndex,
@@ -76,6 +77,7 @@ function generateParameterValuesForStep(
         chunkSize,
         multiFrameRendering,
         maxCpuUsagePercentage,
+        stepIgnoreMissingDependencies,
         prefix,
     )
 }
@@ -393,7 +395,8 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
             endFrame,
             stepFramesPerTask,
             stepMultiFrameRendering,
-            stepMaxCpuUsagePercentage
+            stepMaxCpuUsagePercentage,
+            stepIgnoreMissingDependencies
         )
 
         for (var p=0;p<parameterValues.parameterValues.length;p++) {
