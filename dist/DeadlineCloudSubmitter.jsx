@@ -1010,9 +1010,12 @@ function UiSettingsStore(name) {
     // _framesPerTask: string
     this._framesPerTask = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK);;
     // _multiFrameRendering: bool
-    this._multiFrameRendering = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING);
+    this._multiFrameRendering = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING) === "true";
     // _maxCpuUsagePercentage: string
     this._maxCpuUsagePercentage = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE);
+
+    // _ignoreMissingDependencies: bool
+    this._ignoreMissingDependencies = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_MISSING_DEPENDENCIES) === "true";
 
     this.framesPerTask = function () {
         return this._framesPerTask
@@ -1036,6 +1039,14 @@ function UiSettingsStore(name) {
     this.setMaxCpuUsagePercentage = function (value) {
         logger.warning("(" + this.name + ") Setting maxCpuUsagePercentage to " + value)
         this._maxCpuUsagePercentage = typeof value === "string" ? value : value.toString()
+    }
+
+    this.ignoreMissingDependencies = function () {
+        return this._ignoreMissingDependencies
+    }
+    this.setIgnoreMissingDependencies = function (value) {
+        logger.warning("(" + this.name + ") Setting ignoreMissingDependencies to " + value)
+        this._ignoreMissingDependencies = typeof value === "boolean" ? value : (value === "true")
     }
 }
 
@@ -1144,9 +1155,12 @@ function jobAttachmentsJson(inputFiles, outputFolder) {
  * More efficient than just iterating through items in the project when
  * there is a lot of unused footage in the project
  **/
-function findJobAttachments(rootComp) {
+function findJobAttachments(rootComp, ignoreMissingDependencies) {
     if (rootComp == null) {
         return [];
+    }
+    if (ignoreMissingDependencies === undefined) {
+        ignoreMissingDependencies = false;
     }
     const attachments = [];
     const exploredItems = {}; // using this object as a set because AE doesn't support sets
@@ -1174,7 +1188,8 @@ function findJobAttachments(rootComp) {
                     src instanceof FootageItem &&
                     src.mainSource instanceof FileSource
                 ) {
-                    if (src.footageMissing) {
+                    // We only care if the footage is missing when ignoreMissingDependencies is false
+                    if (src.footageMissing && !ignoreMissingDependencies) {
                         if (shouldShowPopup) {
                             adcAlert(
                                 "Missing Footage: " +
@@ -1200,7 +1215,8 @@ function findJobAttachments(rootComp) {
         // Notify the user if any fonts are missing or are substituted during the session.
         // A substituted font is a font that was already missing when the project is opened.
         // A missing font is a font that went missing (e.g. font was uninstalled) while the project was open.
-        if (app.fonts.missingOrSubstitutedFonts != "") {
+        //  Again only only care if ignoreMissingDependencies is false
+        if (app.fonts.missingOrSubstitutedFonts != "" && !ignoreMissingDependencies) {
             adcAlert("Missing fonts in project: " + (app.fonts.missingOrSubstitutedFonts).toString(), false);
         }
         // Formatting collected fonts
@@ -1875,6 +1891,7 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
         var stepFramesPerTask = parseInt(selectionSettings.get(renderQueueItem.comp.id).framesPerTask() || framesPerTask)
         var stepMaxCpuUsagePercentage = parseInt(selectionSettings.get(renderQueueItem.comp.id).maxCpuUsagePercentage() || maxCpuUsagePercentage)
         var stepMultiFrameRendering = selectionSettings.get(renderQueueItem.comp.id).multiFrameRendering() || multiFrameRendering
+        var stepIgnoreMissingDependencies = selectionSettings.get(renderQueueItem.comp.id).ignoreMissingDependencies()
 
         var outputModule = renderQueueItem.outputModule(1).file;
         var outputPath = outputModule.fsName;
@@ -1900,7 +1917,7 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
                 )
             ) - 1; // end frame is inclusive so we subtract 1
 
-        var dependencies = findJobAttachments(renderQueueItem.comp); // list of filenames
+        var dependencies = findJobAttachments(renderQueueItem.comp, stepIgnoreMissingDependencies); // list of filenames
         var compName = dcUtil.removeIllegalCharacters(renderQueueItem.comp.name);
 
         var sanitizedOutputFolder = sanitizeFilePath(outputFolder);
@@ -2613,6 +2630,10 @@ if (typeof DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE === "undefined") {
     const DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE = "maxCpuUsagePercentage"
 }
 
+if (typeof DEADLINECLOUD_IGNORE_MISSING_DEPENDENCIES === "undefined") {
+    const DEADLINECLOUD_IGNORE_MISSING_DEPENDENCIES = "ignoreMissingDependencies"
+}
+
 // Set up default values for AE job submitter settings
 if (!app.settings.haveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK)) {
     app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK, "10");
@@ -2624,6 +2645,10 @@ if (!app.settings.haveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MU
 
 if (!app.settings.haveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE)) {
     app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE, "90");
+}
+
+if (!app.settings.haveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_MISSING_DEPENDENCIES)) {
+    app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_MISSING_DEPENDENCIES, "false");
 }
 
 
@@ -2651,8 +2676,9 @@ function populateListBoxItem(item, renderQueueItem, index) {
 function refreshList(listBox, uiSettingsState) {
     listBox.removeAll();
     const framesPerTask = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK) || "50"
-    const multiFrameRendering = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING)
+    const multiFrameRendering = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING) == "true"
     const maxCpuUsagePercentage = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE)
+    const ignoreMissingDependencies = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_MISSING_DEPENDENCIES)
 
     const InvalidRenderQueueItemStatuses = [
         RQItemStatus.RENDERING,
@@ -2676,7 +2702,7 @@ function refreshList(listBox, uiSettingsState) {
         populateListBoxItem(item, renderQueueItem, index);
         // TODO: Value
 
-        uiSettingsState.create(item.compId, framesPerTask, multiFrameRendering, maxCpuUsagePercentage);
+        uiSettingsState.create(item.compId, framesPerTask, multiFrameRendering, maxCpuUsagePercentage, ignoreMissingDependencies);
     }
 
     listBox.selection = null;
@@ -2740,6 +2766,7 @@ function buildUI(thisObj) {
         framesPerTaskTextBox.enabled = false
         mfrCheckBox.enabled = false
         maxCpuUsagePercentageTextBox.enabled = false
+        ignoreMissingDepsCheckBox.enabled = false
 
         if (selection.length !== 1) {
             return
@@ -2749,6 +2776,7 @@ function buildUI(thisObj) {
         const imageOutput = isRenderQueueItemImageOutput(app.project.renderQueue.item(selectionItem.renderQueueIndex))
         framesPerTaskTextBox.enabled = imageOutput
         mfrCheckBox.enabled = true
+        ignoreMissingDepsCheckBox.enabled = true
         maxCpuUsagePercentageTextBox.enabled = true
 
         logger.debug("    Setting framesPerTaskTextBox.text to: " + selectionItem.subItems[1].text);
@@ -2768,6 +2796,9 @@ function buildUI(thisObj) {
         mfrCheckBox.value = settings.multiFrameRendering()
         logger.debug("    Setting maxCpuUsagePercentageTextBox.text to: " + settings.maxCpuUsagePercentage());
         maxCpuUsagePercentageTextBox.text = settings.maxCpuUsagePercentage()
+
+        logger.debug("    Setting ignoreMissingDependencies.value to: " + settings.ignoreMissingDependencies());
+        ignoreMissingDepsCheckBox.value = settings.ignoreMissingDependencies()
 
         maxCpuUsagePercentageTextBox.enabled = mfrCheckBox.value
     }
@@ -2821,6 +2852,27 @@ function buildUI(thisObj) {
         }
     }
     framesPerTaskTextBox.onChange = onFramesPerTaskChanged;
+
+    // Ignore Missing Dependencies GUI
+    const ignoreMissingDepsGroup = settingsGroup.add("group", undefined, "");
+    ignoreMissingDepsGroup.orientation = "column";
+    ignoreMissingDepsGroup.alignment = ['fill', 'top'];
+    ignoreMissingDepsGroup.alignChildren = ['left', 'center'];
+    ignoreMissingDepsGroup.margins = 5;
+
+    const ignoreMissingDepsCheckBox = ignoreMissingDepsGroup.add("checkbox", undefined, "Ignore Missing Dependencies");
+    ignoreMissingDepsCheckBox.value = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_MISSING_DEPENDENCIES) === "true";
+    ignoreMissingDepsGroup.orientation = "column";
+
+    // Ignore Missing Dependencies Checkbox
+    function onIgnoreMissingDepsCheckBoxClicked() {
+        const isIgnoreMissingDepsChecked = ignoreMissingDepsCheckBox.value;
+        for (var s=0;s<list.selection.length;s++) {
+            const selectionItem = list.selection[s];
+            uiSettingsState.get(selectionItem.compId).setIgnoreMissingDependencies(isIgnoreMissingDepsChecked)
+        }
+    }
+    ignoreMissingDepsCheckBox.onClick = onIgnoreMissingDepsCheckBoxClicked;
 
     // Multi-frame rendering (MFR) GUI
     const mfrGroup = settingsGroup.add("group", undefined, "");
