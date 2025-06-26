@@ -244,7 +244,7 @@ function buildUI(thisObj) {
     ignoreMissingDepsGroup.orientation = "column";
     ignoreMissingDepsGroup.alignment = ['fill', 'top'];
     ignoreMissingDepsGroup.alignChildren = ['left', 'center'];
-    ignoreMissingDepsGroup.margins = 5;
+    ignoreMissingDepsGroup.margins = 1;
 
     const ignoreMissingDepsCheckBox = ignoreMissingDepsGroup.add("checkbox", undefined, "Ignore Missing Dependencies");
     ignoreMissingDepsCheckBox.value = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_MISSING_DEPENDENCIES) === "true";
@@ -265,7 +265,7 @@ function buildUI(thisObj) {
     mfrGroup.orientation = "column";
     mfrGroup.alignment = ['fill', 'top'];
     mfrGroup.alignChildren = ['left', 'center'];
-    mfrGroup.margins = 5;
+    mfrGroup.margins = 1;
 
     const mfrCheckBox = mfrGroup.add("checkbox", undefined, "Enable Multi-Frame Rendering");
     mfrCheckBox.value = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING) === "true";
