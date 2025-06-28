@@ -1,5 +1,5 @@
 var scriptFolder = Folder.current.fsName;
-var SUPPORTED_VERSIONS = [24.6, 25.1, 25.2];
+const SUPPORTED_VERSIONS = [24.6, 25.1, 25.2];
 
 function readFile(filePath) {
     const f = new File(filePath);
