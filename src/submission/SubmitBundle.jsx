@@ -64,6 +64,7 @@ function generateParameterValuesForStep(
     chunkSize,
     multiFrameRendering,
     maxCpuUsagePercentage,
+    stepIgnoreMissingDependencies,
 ) {
     return parameterValues(
         renderQueueIndex,
@@ -76,6 +77,7 @@ function generateParameterValuesForStep(
         chunkSize,
         multiFrameRendering,
         maxCpuUsagePercentage,
+        stepIgnoreMissingDependencies,
         prefix,
     )
 }
@@ -338,6 +340,7 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
         var stepFramesPerTask = parseInt(selectionSettings.get(renderQueueItem.comp.id).framesPerTask() || framesPerTask)
         var stepMaxCpuUsagePercentage = parseInt(selectionSettings.get(renderQueueItem.comp.id).maxCpuUsagePercentage() || maxCpuUsagePercentage)
         var stepMultiFrameRendering = selectionSettings.get(renderQueueItem.comp.id).multiFrameRendering() || multiFrameRendering
+        var stepIgnoreMissingDependencies = selectionSettings.get(renderQueueItem.comp.id).ignoreMissingDependencies()
 
         var outputModule = renderQueueItem.outputModule(1).file;
         var outputPath = outputModule.fsName;
@@ -363,7 +366,7 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
                 )
             ) - 1; // end frame is inclusive so we subtract 1
 
-        var dependencies = findJobAttachments(renderQueueItem.comp); // list of filenames
+        var dependencies = findJobAttachments(renderQueueItem.comp, stepIgnoreMissingDependencies); // list of filenames
         var compName = dcUtil.removeIllegalCharacters(renderQueueItem.comp.name);
 
         var sanitizedOutputFolder = sanitizeFilePath(outputFolder);
@@ -392,7 +395,8 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
             endFrame,
             stepFramesPerTask,
             stepMultiFrameRendering,
-            stepMaxCpuUsagePercentage
+            stepMaxCpuUsagePercentage,
+            stepIgnoreMissingDependencies
         )
 
         for (var p=0;p<parameterValues.parameterValues.length;p++) {

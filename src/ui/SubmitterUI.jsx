@@ -16,6 +16,10 @@ if (typeof DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE === "undefined") {
     const DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE = "maxCpuUsagePercentage"
 }
 
+if (typeof DEADLINECLOUD_IGNORE_MISSING_DEPENDENCIES === "undefined") {
+    const DEADLINECLOUD_IGNORE_MISSING_DEPENDENCIES = "ignoreMissingDependencies"
+}
+
 // Set up default values for AE job submitter settings
 if (!app.settings.haveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK)) {
     app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK, "10");
@@ -27,6 +31,10 @@ if (!app.settings.haveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MU
 
 if (!app.settings.haveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE)) {
     app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE, "90");
+}
+
+if (!app.settings.haveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_MISSING_DEPENDENCIES)) {
+    app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_MISSING_DEPENDENCIES, "false");
 }
 
 
@@ -54,8 +62,9 @@ function populateListBoxItem(item, renderQueueItem, index) {
 function refreshList(listBox, uiSettingsState) {
     listBox.removeAll();
     const framesPerTask = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK) || "50"
-    const multiFrameRendering = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING)
+    const multiFrameRendering = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING) == "true"
     const maxCpuUsagePercentage = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE)
+    const ignoreMissingDependencies = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_MISSING_DEPENDENCIES)
 
     const InvalidRenderQueueItemStatuses = [
         RQItemStatus.RENDERING,
@@ -79,7 +88,7 @@ function refreshList(listBox, uiSettingsState) {
         populateListBoxItem(item, renderQueueItem, index);
         // TODO: Value
 
-        uiSettingsState.create(item.compId, framesPerTask, multiFrameRendering, maxCpuUsagePercentage);
+        uiSettingsState.create(item.compId, framesPerTask, multiFrameRendering, maxCpuUsagePercentage, ignoreMissingDependencies);
     }
 
     listBox.selection = null;
@@ -143,6 +152,7 @@ function buildUI(thisObj) {
         framesPerTaskTextBox.enabled = false
         mfrCheckBox.enabled = false
         maxCpuUsagePercentageTextBox.enabled = false
+        ignoreMissingDepsCheckBox.enabled = false
 
         if (selection.length !== 1) {
             return
@@ -152,6 +162,7 @@ function buildUI(thisObj) {
         const imageOutput = isRenderQueueItemImageOutput(app.project.renderQueue.item(selectionItem.renderQueueIndex))
         framesPerTaskTextBox.enabled = imageOutput
         mfrCheckBox.enabled = true
+        ignoreMissingDepsCheckBox.enabled = true
         maxCpuUsagePercentageTextBox.enabled = true
 
         logger.debug("    Setting framesPerTaskTextBox.text to: " + selectionItem.subItems[1].text);
@@ -171,6 +182,9 @@ function buildUI(thisObj) {
         mfrCheckBox.value = settings.multiFrameRendering()
         logger.debug("    Setting maxCpuUsagePercentageTextBox.text to: " + settings.maxCpuUsagePercentage());
         maxCpuUsagePercentageTextBox.text = settings.maxCpuUsagePercentage()
+
+        logger.debug("    Setting ignoreMissingDependencies.value to: " + settings.ignoreMissingDependencies());
+        ignoreMissingDepsCheckBox.value = settings.ignoreMissingDependencies()
 
         maxCpuUsagePercentageTextBox.enabled = mfrCheckBox.value
     }
@@ -225,12 +239,33 @@ function buildUI(thisObj) {
     }
     framesPerTaskTextBox.onChange = onFramesPerTaskChanged;
 
+    // Ignore Missing Dependencies GUI
+    const ignoreMissingDepsGroup = settingsGroup.add("group", undefined, "");
+    ignoreMissingDepsGroup.orientation = "column";
+    ignoreMissingDepsGroup.alignment = ['fill', 'top'];
+    ignoreMissingDepsGroup.alignChildren = ['left', 'center'];
+    ignoreMissingDepsGroup.margins = 1;
+
+    const ignoreMissingDepsCheckBox = ignoreMissingDepsGroup.add("checkbox", undefined, "Ignore Missing Dependencies");
+    ignoreMissingDepsCheckBox.value = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_MISSING_DEPENDENCIES) === "true";
+    ignoreMissingDepsGroup.orientation = "column";
+
+    // Ignore Missing Dependencies Checkbox
+    function onIgnoreMissingDepsCheckBoxClicked() {
+        const isIgnoreMissingDepsChecked = ignoreMissingDepsCheckBox.value;
+        for (var s=0;s<list.selection.length;s++) {
+            const selectionItem = list.selection[s];
+            uiSettingsState.get(selectionItem.compId).setIgnoreMissingDependencies(isIgnoreMissingDepsChecked)
+        }
+    }
+    ignoreMissingDepsCheckBox.onClick = onIgnoreMissingDepsCheckBoxClicked;
+
     // Multi-frame rendering (MFR) GUI
     const mfrGroup = settingsGroup.add("group", undefined, "");
     mfrGroup.orientation = "column";
     mfrGroup.alignment = ['fill', 'top'];
     mfrGroup.alignChildren = ['left', 'center'];
-    mfrGroup.margins = 5;
+    mfrGroup.margins = 1;
 
     const mfrCheckBox = mfrGroup.add("checkbox", undefined, "Enable Multi-Frame Rendering");
     mfrCheckBox.value = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING) === "true";

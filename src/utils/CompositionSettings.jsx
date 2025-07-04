@@ -6,9 +6,12 @@ function UiSettingsStore(name) {
     // _framesPerTask: string
     this._framesPerTask = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK);
     // _multiFrameRendering: bool
-    this._multiFrameRendering = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING);
+    this._multiFrameRendering = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING) === "true";
     // _maxCpuUsagePercentage: string
     this._maxCpuUsagePercentage = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE);
+
+    // _ignoreMissingDependencies: bool
+    this._ignoreMissingDependencies = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_MISSING_DEPENDENCIES) === "true";
 
     this.framesPerTask = function () {
         return this._framesPerTask
@@ -32,6 +35,14 @@ function UiSettingsStore(name) {
     this.setMaxCpuUsagePercentage = function (value) {
         logger.warning("(" + this.name + ") Setting maxCpuUsagePercentage to " + value)
         this._maxCpuUsagePercentage = typeof value === "string" ? value : value.toString()
+    }
+
+    this.ignoreMissingDependencies = function () {
+        return this._ignoreMissingDependencies
+    }
+    this.setIgnoreMissingDependencies = function (value) {
+        logger.warning("(" + this.name + ") Setting ignoreMissingDependencies to " + value)
+        this._ignoreMissingDependencies = typeof value === "boolean" ? value : (value === "true")
     }
 }
 
