@@ -2877,6 +2877,10 @@ function buildUI(thisObj) {
         framesPerTaskTextBox.enabled = false
         mfrCheckBox.enabled = false
         maxCpuUsagePercentageTextBox.enabled = false
+        taskRunCheckbox.enabled = false
+        taskRunDaysInput.enabled = false
+        taskRunHoursInput.enabled = false
+        taskRunMinutesInput.enabled = false
 
         if (selection.length !== 1) {
             return
@@ -2887,6 +2891,10 @@ function buildUI(thisObj) {
         framesPerTaskTextBox.enabled = imageOutput
         mfrCheckBox.enabled = true
         maxCpuUsagePercentageTextBox.enabled = true
+        taskRunCheckbox.enabled = true
+        taskRunDaysInput.enabled = true
+        taskRunHoursInput.enabled = true
+        taskRunMinutesInput.enabled = true
 
         logger.debug("    Setting framesPerTaskTextBox.text to: " + selectionItem.subItems[1].text);
         framesPerTaskTextBox.text = selectionItem.subItems[1].text
@@ -2907,6 +2915,14 @@ function buildUI(thisObj) {
         maxCpuUsagePercentageTextBox.text = settings.maxCpuUsagePercentage()
 
         maxCpuUsagePercentageTextBox.enabled = mfrCheckBox.value
+
+        taskRunCheckbox.value = settings.taskRunTimeout()
+        taskRunDaysInput.enabled = taskRunCheckbox.value
+        taskRunDaysInput.text = settings.taskRunDays()
+        taskRunHoursInput.enabled = taskRunCheckbox.value
+        taskRunHoursInput.text = settings.taskRunHours()
+        taskRunMinutesInput.enabled = taskRunCheckbox.value
+        taskRunMinutesInput.text = settings.taskRunMinutes()
     }
 
     list.onChange = onSelectionChange;
