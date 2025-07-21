@@ -756,6 +756,27 @@ function __generateUtil() {
         return version
     }
 
+    function validateTimeoutValues(enabled, daysInput, hoursInput, minutesInput) {
+        if (enabled) {
+            var days = parseInt(daysInput.text) || 0;
+            var hours = parseInt(hoursInput.text) || 0;
+            var minutes = parseInt(minutesInput.text) || 0;
+
+            if (days === 0 && hours === 0 && minutes === 0) {
+                adcAlert("Timeout cannot be set to zero. Please enter a value greater than zero for days, hours, or minutes.", true);
+                app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_TASK_RUN_TIMEOUT_DAYS, "2");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function getSelection(list) {
+        for (var s=0;s<list.selection.length;s++) {
+            return list.selection[s];
+        }
+    }
+
     return {
         "invertObject": invertObject,
         "toBooleanString": toBooleanString,
@@ -789,6 +810,8 @@ function __generateUtil() {
         "getTempFile": getTempFile,
         "getUserDirectory": getUserDirectory,
         "getAEVersion": getAEVersion,
+        "validateTimeoutValues": validateTimeoutValues,
+        "getSelection": getSelection,
         "getTempFolder": getTempFolder
     }
 }
