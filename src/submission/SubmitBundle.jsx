@@ -225,59 +225,10 @@ function SubmitSelection(selection, framesPerTask, multiFrameRendering, maxCpuUs
         renderQueueItems.push([initialRenderQueueItem, initialRenderQueueIndex])
     }
 
-    //We have a valid selection
-    var confirmation = confirm("Project must be saved before submitting. Continue?");
-    if (!confirmation) {
-        return;
-    } else {
-        app.project.save();
-    }
-    if (app.project.file == null) {
-        // If the user hit yes to the prompt, but the file had never been saved, a second prompt would appear asking where they would want to save the project.
-        // If they hit cancel on the second prompt, the project file should be null and we should cancel the submission.
-        return;
-    }
-
-    // Check if warning should be shown
-    const ignoreWarning = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_VERSION_WARNING) === "true";
-    const savedVersion = parseFloat(app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_VERSION_WARNING_VERSION) || "0");
-    const currentVersion = dcUtil.getAEVersion();
-
-    // Is this AE version not supported in the deadline-cloud channel?
-    if (SUPPORTED_VERSIONS.indexOf(currentVersion) === -1) {
-        // If so, has the warning already been ignored or is the user on a different AE version and we should warn them again?
-        if (!ignoreWarning || savedVersion !== currentVersion) {
-            const versionMismatchWarningMessage = "Warning: Your After Effects version " + currentVersion +
-            " is not officially supported in the deadline-cloud conda channel. Supported versions are: " + SUPPORTED_VERSIONS.join(", ") + ". " +
-            "This may result in compatibility issues or failed jobs.\n\nDon't show this warning again for version " + currentVersion + "?";
-
-            // Provide warning, and if acknowledged, store their current version and warning preference. Otherwise, block job submission.
-            app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_VERSION_WARNING_VERSION, currentVersion.toString());
-            if (confirm(versionMismatchWarningMessage)) {
-                app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_VERSION_WARNING, "true");
-            } else {
-                app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_VERSION_WARNING, "false");
-                return;
-            }
-        } else {
-            logger.debug("Version mismatch already acknowledged, version warning skipped.");
-        }
-        logger.debug("Defaulting to After Effects major version conda package to minimize incompatibility issues.");
-    }
-
-    var outputPath = "";
-    var outputFile = "";
-    var outputFolder = "";
-    for (var j = 1; j <= rqi.numOutputModules; j++) {
-        var outputModule = rqi.outputModule(j).file;
-        if (outputModule == null) {
-            if (rqi.numOutputModules > 1) {
-                adcAlert("Error: Output module does not have its output file set", true);
-            } else {
-                adcAlert(
-                    "Error: One of your output modules does not have its output file set", true
-                );
-            }
+    // We have valid selections check for saving
+    if (app.project.dirty) {
+        const confirmation = confirm("Project must be saved before submitting. Continue?");
+        if (!confirmation) {
             return;
         } else {
             app.project.save();
@@ -289,7 +240,6 @@ function SubmitSelection(selection, framesPerTask, multiFrameRendering, maxCpuUs
         }
     }
 
-
     // Check if warning should be shown
     const ignoreWarning = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_VERSION_WARNING) === "true";
     const savedVersion = parseFloat(app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_VERSION_WARNING_VERSION) || "0");
@@ -317,87 +267,116 @@ function SubmitSelection(selection, framesPerTask, multiFrameRendering, maxCpuUs
         logger.debug("Defaulting to After Effects major version conda package to minimize incompatibility issues.");
     }
 
+
     var aftereffectsCondaVersion = dcUtil.getAEVersion();
     if (SUPPORTED_VERSIONS.indexOf(aftereffectsCondaVersion) === -1) {
         aftereffectsCondaVersion = Math.floor(aftereffectsCondaVersion);
     }
     logger.debug("The compatible version of After Effects is " + aftereffectsCondaVersion, submitBundleFile);
 
-    /**
-     * Generates parameter_values json file
-     **/
-    function generateParameterValues(bundlePath, outputFolder, outputFileName, isImageSeq) {
-        var parametersOutDir = bundlePath + "/parameter_values.json";
-        writeFile(
-            parametersOutDir,
-            JSON.stringify(
-                parameterValues(
-                    renderQueueIndex,
-                    app.project.file.fsName,
-                    outputFolder,
-                    outputFileName,
-                    isImageSeq,
-                    startFrame,
-                    endFrame,
-                    framesPerTask,
-                    multiFrameRendering,
-                    maxCpuUsagePercentage
-                ),
-                null,
-                4,
-            )
-        );
+
+    const bundle = generateBundle();
+    const jobAssetReferences = {
+        assetReferences: {
+            inputs: {
+                directories: [],
+                filenames: [],
+            },
+            outputs: {
+                directories: [],
+            },
+            referencedPaths: [],
+        },
+    };
+    const jobParameterDefinitions = {
+      "parameterDefinitions": [
+        {
+          "name": "ProjectFile",
+          "type": "PATH",
+          "objectType": "FILE",
+          "dataFlow": "IN",
+          "userInterface": {
+            "control": "CHOOSE_INPUT_FILE",
+            "label": "Project file",
+            "groupLabel": "Source",
+            "fileFilters": [
+              {
+                "label": "After Effects project files",
+                "patterns": [
+                  "*.aep",
+                  "*.aepx"
+                ]
+              },
+              {
+                "label": "All Files",
+                "patterns": [
+                  "*"
+                ]
+              }
+            ]
+          },
+          "description": "The After Effects project file to render."
+        },
+        {
+          "name": "JobScriptDir",
+          "description": "Directory containing embedded scripts.",
+          "userInterface": {
+            "control": "HIDDEN"
+          },
+          "type": "PATH",
+          "objectType": "DIRECTORY",
+          "dataFlow": "IN",
+          "default": "scripts"
+        },
+        {
+          "name": "CondaPackages",
+          "type": "STRING",
+          "userInterface": {
+            "control": "HIDDEN"
+          },
+          "default": "aftereffects=" + aftereffectsCondaVersion,
+          "description": "If a queue accepts this parameter, it will create a conda virtual environment from it."
+        }
+      ]
+    }
+    const jobParameterValues = {
+        parameterValues: [
+            {
+                name: "deadline:targetTaskRunStatus",
+                value: "READY",
+            },
+            {
+                name: "deadline:maxFailedTasksCount",
+                value: 20,
+            },
+            {
+                name: "deadline:maxRetriesPerTask",
+                value: 5,
+            },
+            {
+                name: "deadline:priority",
+                value: 50,
+            },
+            {
+                name: "ProjectFile",
+                value: app.project.file.fsName,
+            },
+        ]
     }
 
-    /**
-     * Generates job template json file
-     **/
-    function generateTemplate(bundlePath, isImageSeq) {
-        // Open the template depending on the output type
-        var path = bundlePath + "/video_template.json";
-        if (isImageSeq) {
-            path = bundlePath + "/image_template.json";
-        }
-        var templateContents = readFile(path);
-        // Parse the template string to a JSON object
-        var templateObject = JSON.parse(templateContents);
-        templateObject.name = File.decode(app.project.file.name) + " [" + compName + "]";
-        logger.debug("The template name is " + templateObject.name, submitBundleFile);
-        try {
-            if (templateObject.steps[0].name) {
-                templateObject.steps[0].name = compName;
-                logger.debug("The step name is " + templateObject.steps[0].name, submitBundleFile);
-            }
-        } catch (e) {
-            adcAlert("Error accessing the template's steps name. \nPlease check your template.json and make sure you have name under steps.", true);
-            logger.debug("Error accessing the template's steps name. " + error, submitBundleFile);
-        }
-        try {
-            if (templateObject.steps[0].script && templateObject.steps[0].script.actions) {
-                // Add timeout to the onRun action
-                if (templateObject.steps[0].script.actions.onRun) {
-                    templateObject.steps[0].script.actions.onRun["timeout"] = taskTimeoutSeconds;
-                    logger.debug("Added timeout of " + taskTimeoutSeconds + " seconds to onRun action", submitBundleFile);
-                }
-            }
-        } catch (e) {
-            adcAlert("Error accessing the template's actions. \nPlease check your template.json.", true);
-            logger.debug("Error accessing the template's actions: " + e.message, submitBundleFile);
-        }
-
-        var aftereffectsCondaVersion = dcUtil.getAEVersion();
-        if (SUPPORTED_VERSIONS.indexOf(aftereffectsCondaVersion) === -1) {
-            aftereffectsCondaVersion = Math.floor(aftereffectsCondaVersion);
-        }
-        logger.debug("The compatible version of After Effects is " + aftereffectsCondaVersion, submitBundleFile);
+    const template = loadDefaultJobTemplate(bundle.fsName, submitBundleFile);
+    template.steps = []
+    template.parameterDefinitions = jobParameterDefinitions.parameterDefinitions
 
     // generateTemplate(bundle.fsName, isImageSeq, compName, submitBundleFile);
     const stepOutputFolderParameters = [];
 
-        for (var i = paramDefCopy.length - 1; i >= 0; i--) {
-            if (paramDefCopy[i].name == "CondaPackages") {
-                paramDefCopy[i].default = "aftereffects=" + aftereffectsCondaVersion;
-            }
+    for (var i=0;i<renderQueueItems.length;i++) {
+        var renderQueueItem = renderQueueItems[i][0];
+        var renderQueueIndex = renderQueueItems[i][1];
+
+        if (!validateRenderQueueItemOutputModule(renderQueueItem)) {
+            return;
         }
 
         var stepFramesPerTask = parseInt(selectionSettings.get(renderQueueItem.comp.id).framesPerTask() || framesPerTask)

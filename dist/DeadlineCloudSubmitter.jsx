@@ -753,13 +753,6 @@ function __generateUtil() {
         return $.getenv("USERPROFILE");
     }
 
-    function getAEVersion() {
-        /* Return After Effects version as float. */
-        const versionAsString = app.version.substring(0, 4);
-        const version = parseFloat(versionAsString);
-        return version
-    }
-
     function validateTimeoutValues(enabled, daysInput, hoursInput, minutesInput) {
         if (enabled) {
             var days = parseInt(daysInput.text) || 0;
@@ -779,6 +772,13 @@ function __generateUtil() {
         for (var s=0;s<list.selection.length;s++) {
             return list.selection[s];
         }
+    }
+
+    function getAEVersion() {
+        /* Return After Effects version as float. */
+        const versionAsString = app.version.substring(0, 4);
+        const version = parseFloat(versionAsString);
+        return version
     }
 
     return {
@@ -813,9 +813,9 @@ function __generateUtil() {
         "removePercentageFromFileName": removePercentageFromFileName,
         "getTempFile": getTempFile,
         "getUserDirectory": getUserDirectory,
-        "getAEVersion": getAEVersion,
         "validateTimeoutValues": validateTimeoutValues,
         "getSelection": getSelection,
+        "getAEVersion": getAEVersion,
         "getTempFolder": getTempFolder
     }
 }
@@ -1658,25 +1658,17 @@ function isImageOutput(extension) {
 
 
 
-/**
- * Submit the selected render queue item
- **/
-function SubmitSelection(selection, framesPerTask, multiFrameRendering, maxCpuUsagePercentage, taskTimeoutDays, taskTimeoutHours, taskTimeoutMinutes) {
-    // Calculate task run timeout in seconds
-    var taskTimeoutSeconds = 0;
-    // Validate timeout values during job submission
-    if (taskTimeoutDays === 0 && taskTimeoutHours === 0 && taskTimeoutMinutes === 0) {
-        adcAlert("The following timeout value must be greater than 0: TaskRun", true);
-        throw new Error("Task run timeout must be greater than zero");
-    }
-    taskTimeoutSeconds = (taskTimeoutDays * 24 * 60 * 60) + (taskTimeoutHours * 60 * 60) + (taskTimeoutMinutes * 60);
+var JobParams = [
+    "JobScriptDir",
+    "CondaPackages",
+    "ProjectFile"
+]
 
-    const submitBundleFile = "SubmitButton.jsx";
-    // first we must verify that our selection is valid
-    if (selection == null) {
-        adcAlert("Error: No selection", true);
-        return;
-    }
+var paramPattern = "Param\."
+for (var p=0;p<JobParams.length;p++) {
+    paramPattern = paramPattern + "(?!" + JobParams[p] + ")"
+}
+var paramPatternRegex = new RegExp(paramPattern, 'g')
 
 
 // Validate that the RenderQueueIndex for each selectionItem is still valid
@@ -1717,71 +1709,45 @@ function validateRenderQueueItemOutputModule(renderQueueItem) {
         adcAlert("Error: Render Queue Item " + renderQueueItem.comp.name + " does not have its output file set", true);
         return false;
     }
+    return true;
+}
 
-    // Check if warning should be shown
-    const ignoreWarning = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_VERSION_WARNING) === "true";
-    const savedVersion = parseFloat(app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_VERSION_WARNING_VERSION) || "0");
-    const currentVersion = dcUtil.getAEVersion();
+// Generate our prefixed Parameter Values for the provided comp
+function generateParameterValuesForStep(
+    prefix,
+    renderQueueIndex,
+    outputFolder,
+    outputFileName,
+    isImageSeq,
+    startFrame,
+    endFrame,
+    chunkSize,
+    multiFrameRendering,
+    maxCpuUsagePercentage,
+) {
+    return parameterValues(
+        renderQueueIndex,
+        app.project.file.fsName,
+        outputFolder,
+        outputFileName,
+        isImageSeq,
+        startFrame,
+        endFrame,
+        chunkSize,
+        multiFrameRendering,
+        maxCpuUsagePercentage,
+        prefix,
+    )
+}
 
-    // Is this AE version not supported in the deadline-cloud channel?
-    if (SUPPORTED_VERSIONS.indexOf(currentVersion) === -1) {
-        // If so, has the warning already been ignored or is the user on a different AE version and we should warn them again?
-        if (!ignoreWarning || savedVersion !== currentVersion) {
-            const versionMismatchWarningMessage = "Warning: Your After Effects version " + currentVersion +
-            " is not officially supported in the deadline-cloud conda channel. Supported versions are: " + SUPPORTED_VERSIONS.join(", ") + ". " +
-            "This may result in compatibility issues or failed jobs.\n\nDon't show this warning again for version " + currentVersion + "?";
-
-            // Provide warning, and if acknowledged, store their current version and warning preference. Otherwise, block job submission.
-            app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_VERSION_WARNING_VERSION, currentVersion.toString());
-            if (confirm(versionMismatchWarningMessage)) {
-                app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_VERSION_WARNING, "true");
-            } else {
-                app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_VERSION_WARNING, "false");
-                return;
-            }
-        } else {
-            logger.debug("Version mismatch already acknowledged, version warning skipped.");
-        }
-        logger.debug("Defaulting to After Effects major version conda package to minimize incompatibility issues.");
-    }
-
-    var outputPath = "";
-    var outputFile = "";
-    var outputFolder = "";
-    for (var j = 1; j <= rqi.numOutputModules; j++) {
-        var outputModule = rqi.outputModule(j).file;
-        if (outputModule == null) {
-            if (rqi.numOutputModules > 1) {
-                adcAlert("Error: Output module does not have its output file set", true);
-            } else {
-                adcAlert(
-                    "Error: One of your output modules does not have its output file set", true
-                );
-            }
-            return;
-        } else {
-            outputPath = outputModule.fsName;
-            outputFile = outputModule.name;
-            outputFolder = outputModule.parent.fsName;
-            logger.debug("OutputPath is: " + outputPath, submitBundleFile);
-            logger.debug("OutputFile is: " + outputFile, submitBundleFile);
-            logger.debug("outputFolder is: " + outputFolder, submitBundleFile);
-        }
-    }
-    var renderSettings = rqi.getSettings(GetSettingsFormat.STRING_SETTABLE);
-    var startFrame = Number(
-        timeToFrames(
-            Number(renderSettings["Time Span Start"]),
-            Number(renderSettings["Use this frame rate"])
-        )
-    );
-    var endFrame =
-        Number(
-            timeToFrames(
-                Number(renderSettings["Time Span End"]),
-                Number(renderSettings["Use this frame rate"])
-            )
-        ) - 1; // end frame is inclusive so we subtract 1
+// Loading our default template from disk
+function loadDefaultJobTemplate(bundlePath, submitBundleFile) {
+    const path = bundlePath + "/template.json";
+    const templateContents = readFile(path);
+    // Parse the template string to a JSON object
+    const templateObject = JSON.parse(templateContents);
+    templateObject.name = File.decode(app.project.file.name);
+    logger.debug("The template name is " + templateObject.name, submitBundleFile);
 
     return templateObject
 }
@@ -1808,30 +1774,12 @@ function generateBundle() {
     return bundleRoot;
 }
 
-    /**
-     * Generates parameter_values json file
-     **/
-    function generateParameterValues(bundlePath, outputFolder, outputFileName, isImageSeq) {
-        var parametersOutDir = bundlePath + "/parameter_values.json";
-        writeFile(
-            parametersOutDir,
-            JSON.stringify(
-                parameterValues(
-                    renderQueueIndex,
-                    app.project.file.fsName,
-                    outputFolder,
-                    outputFileName,
-                    isImageSeq,
-                    startFrame,
-                    endFrame,
-                    framesPerTask,
-                    multiFrameRendering,
-                    maxCpuUsagePercentage
-                ),
-                null,
-                4,
-            )
-        );
+// Generates the parameter definitions for each step by loading the `parameter_definitions_<>_fragment.json`
+//      Adding our `( <CompName> )` to the label and changing the name to prefixed by `<CompName>_`
+function generateStepParameterFragment(bundlePath, isImageSeq, compName) {
+    var path = bundlePath + "/parameter_definitions_video_fragment.json";
+    if (isImageSeq) {
+        path = bundlePath + "/parameter_definitions_image_fragment.json";
     }
     const stepParametersContents = readFile(path);
     // Parse the template string to a JSON object
@@ -1843,24 +1791,9 @@ function generateBundle() {
             // Don't modify these values
             continue
         }
-        try {
-            if (templateObject.steps[0].script && templateObject.steps[0].script.actions) {
-                // Add timeout to the onRun action
-                if (templateObject.steps[0].script.actions.onRun) {
-                    templateObject.steps[0].script.actions.onRun["timeout"] = taskTimeoutSeconds;
-                    logger.debug("Added timeout of " + taskTimeoutSeconds + " seconds to onRun action", submitBundleFile);
-                }
-            }
-        } catch (e) {
-            adcAlert("Error accessing the template's actions. \nPlease check your template.json.", true);
-            logger.debug("Error accessing the template's actions: " + e.message, submitBundleFile);
-        }
-
-        var aftereffectsCondaVersion = dcUtil.getAEVersion();
-        if (SUPPORTED_VERSIONS.indexOf(aftereffectsCondaVersion) === -1) {
-            aftereffectsCondaVersion = Math.floor(aftereffectsCondaVersion);
-        }
-        logger.debug("The compatible version of After Effects is " + aftereffectsCondaVersion, submitBundleFile);
+        var replacedDefinition = stepParametersObject.parameterDefinitions[i]
+        replacedDefinition.name = compName + "_" + stepParametersObject.parameterDefinitions[i].name
+        replacedDefinition.userInterface.label = "(" + compName + ") " + replacedDefinition.userInterface.label
 
         updatedParameterDefinitions.push(replacedDefinition)
     }
@@ -1868,10 +1801,55 @@ function generateBundle() {
     return stepParametersObject
 }
 
-        for (var i = paramDefCopy.length - 1; i >= 0; i--) {
-            if (paramDefCopy[i].name == "CondaPackages") {
-                paramDefCopy[i].default = "aftereffects=" + aftereffectsCondaVersion;
-            }
+// Generates the step chunk of the template for each step by loading the `step_<>_fragment.json`
+//      Replacing the parmaeters to be pointing to our per-CompName parameters and updating any parameters in the onRun
+function generateStepTemplateFragment(bundlePath, isImageSeq, compName, taskTimeoutSeconds) {
+    var path = bundlePath + "/step_video_fragment.json";
+    if (isImageSeq) {
+        path = bundlePath + "/step_image_fragment.json";
+    }
+    const stepTemplateContents = readFile(path);
+    // Parse the template string to a JSON object
+    const stepTemplateObject = JSON.parse(stepTemplateContents);
+
+    if (isImageSeq) {
+        // Replace parameter names in the creation of `Index`
+        const taskParameters = stepTemplateObject.steps[0].parameterSpace.taskParameterDefinitions[0]
+        taskParameters.range = taskParameters.range.replace(paramPatternRegex, "Param." + compName + "_")
+        taskParameters.name = compName + "_" + taskParameters.name
+        stepTemplateObject.steps[0].parameterSpace.taskParameterDefinitions[0] = taskParameters
+    }
+
+    stepTemplateObject.steps[0].name = compName;
+    // Replace any parameter names in onRun script
+    const scriptArgs = stepTemplateObject.steps[0].script.actions.onRun.args
+    const replacedArgs = []
+    for (var i=0;i<scriptArgs.length;i++) {
+        // JobParams
+        replacedArgs.push(scriptArgs[i].replace(paramPatternRegex, "Param." + compName + "_"))
+    }
+    stepTemplateObject.steps[0].script.actions.onRun.args = replacedArgs
+    if (templateObject.steps[0].script.actions.onRun) {
+        templateObject.steps[0].script.actions.onRun["timeout"] = taskTimeoutSeconds;
+        logger.debug("Added timeout of " + taskTimeoutSeconds + " seconds to onRun action", submitBundleFile);
+    }
+
+    return stepTemplateObject
+}
+
+// Modifies the `Create Output Directories` job environment by adding all of our output folder parameters
+function generateJobEnvironmentFragment(bundlePath, outputFoldersStr) {
+    const path = bundlePath + "/job_environments_fragment.json";
+    const jobEnvironmentsContents = readFile(path);
+    // Parse the template string to a JSON object
+    const jobEnvironmentsObject = JSON.parse(jobEnvironmentsContents);
+
+    for (var j=0;j<jobEnvironmentsObject.jobEnvironments.length;j++) {
+        if (jobEnvironmentsObject.jobEnvironments[j].name === "Create Output Directories") {
+            jobEnvironmentsObject.jobEnvironments[j].script.actions.onEnter.args = [
+                "{{Param.JobScriptDir}}/create_output_directory.py",
+                outputFoldersStr
+            ]
         }
     }
     return jobEnvironmentsObject
@@ -1880,7 +1858,7 @@ function generateBundle() {
 /**
  * Submit the selected render queue item
  **/
-function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrameRendering, maxCpuUsagePercentage, taskTimeoutDays, taskTimeoutHours, taskTimeoutMinutes) {
+function SubmitSelection(selection, framesPerTask, multiFrameRendering, maxCpuUsagePercentage, taskTimeoutDays, taskTimeoutHours, taskTimeoutMinutes) {
     // Calculate task run timeout in seconds
     var taskTimeoutSeconds = 0;
     // Validate timeout values during job submission
@@ -1889,7 +1867,6 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
         throw new Error("Task run timeout must be greater than zero");
     }
     taskTimeoutSeconds = (taskTimeoutDays * 24 * 60 * 60) + (taskTimeoutHours * 60 * 60) + (taskTimeoutMinutes * 60);
-
 
     const submitBundleFile = "SubmitButton.jsx";
     const renderQueueItems = []
@@ -1923,7 +1900,6 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
         }
     }
 
-
     // Check if warning should be shown
     const ignoreWarning = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_VERSION_WARNING) === "true";
     const savedVersion = parseFloat(app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_IGNORE_VERSION_WARNING_VERSION) || "0");
@@ -1951,11 +1927,13 @@ function SubmitSelection(selection, selectionSettings, framesPerTask, multiFrame
         logger.debug("Defaulting to After Effects major version conda package to minimize incompatibility issues.");
     }
 
+
     var aftereffectsCondaVersion = dcUtil.getAEVersion();
     if (SUPPORTED_VERSIONS.indexOf(aftereffectsCondaVersion) === -1) {
         aftereffectsCondaVersion = Math.floor(aftereffectsCondaVersion);
     }
     logger.debug("The compatible version of After Effects is " + aftereffectsCondaVersion, submitBundleFile);
+
 
     const bundle = generateBundle();
     const jobAssetReferences = {
@@ -2784,6 +2762,63 @@ if (typeof JSON !== "object") {
 
 
 
+
+
+function populateListBoxItem(item, renderQueueItem, index) {
+    item.renderQueueIndex = index;
+    item.compId = renderQueueItem.comp.id;
+    item.subItems[0].text = renderQueueItem.comp.name;
+
+    const renderSettings = renderQueueItem.getSettings(GetSettingsFormat.STRING_SETTABLE);
+    const startFrame = Number(timeToFrames(Number(renderSettings["Time Span Start"]), Number(renderSettings["Use this frame rate"])));
+    const endFrame = Number(timeToFrames(Number(renderSettings["Time Span End"]), Number(renderSettings["Use this frame rate"]))) - 1; //end frame is inclusive so we subtract 1
+
+    item.subItems[1].text = startFrame == endFrame ? startFrame.toString() : startFrame + "-" + endFrame;
+    if (renderQueueItem.numOutputModules <= 0) {
+        item.subItems[2].text = "<not set>";
+    } else if (renderQueueItem.numOutputModules == 1) {
+        const outputFile = renderQueueItem.outputModule(1).file;
+        item.subItems[2].text = outputFile == null ? "<not set>" : outputFile.fsName;
+    } else {
+        item.subItems[2].text = "<multiple output modules>";
+    }
+}
+
+
+function refreshList(listBox, uiSettingsState) {
+    listBox.removeAll();
+    const framesPerTask = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_FRAMESPERTASK) || "50"
+    const multiFrameRendering = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING)
+    const maxCpuUsagePercentage = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE)
+
+    const InvalidRenderQueueItemStatuses = [
+        RQItemStatus.RENDERING,
+        RQItemStatus.WILL_CONTINUE,
+        RQItemStatus.USER_STOPPED,
+        RQItemStatus.ERR_STOPPED,
+        RQItemStatus.DONE
+    ]
+    for (var index=1;index <= app.project.renderQueue.numItems; index++) {
+        var renderQueueItem = app.project.renderQueue.item(index);
+        if (renderQueueItem == null) {
+            continue;
+        }
+
+        if (InvalidRenderQueueItemStatuses.indexOf(renderQueueItem.status) !== -1) {
+            // Status is in InvalidRenderQueueItemStatuses.
+            continue;
+        }
+
+        var item = listBox.add('item', index.toString());
+        populateListBoxItem(item, renderQueueItem, index);
+        // TODO: Value
+
+        uiSettingsState.create(item.compId, framesPerTask, multiFrameRendering, maxCpuUsagePercentage);
+    }
+
+    listBox.selection = null;
+}
+
 /**
  * Builds the Script UI for the Deadline Cloud Submitter
  **/
@@ -2965,6 +3000,42 @@ function buildUI(thisObj) {
     }
     maxCpuUsagePercentageTextBox.onChange = onMaxCpuUsagePercentageChanged;
 
+    // Disable max CPU percentage textbox when multi frame rendering is disabled
+    function onMfrCheckBoxClicked() {
+        const isMfrChecked = mfrCheckBox.value;
+        var settingsStateValue = false
+        if (!isMfrChecked) {
+            maxCpuUsagePercentageTextBox.text = "N/A";
+            app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING, "false");
+            settingsStateValue = false
+        } else {
+            maxCpuUsagePercentageTextBox.text = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE);
+            app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING, "true");
+            settingsStateValue = true
+        }
+
+        maxCpuUsagePercentageTextBox.enabled = isMfrChecked;
+
+        const selectionItem = dcUtil.getSelection(list);
+        if (selectionItem) {
+            uiSettingsState.get(selectionItem.compId).setMultiFrameRendering(settingsStateValue)
+        }
+    }
+    mfrCheckBox.onClick = onMfrCheckBoxClicked;
+
+    function isRenderQueueItemImageOutput(renderQueueItem) {
+        if (renderQueueItem.numOutputModules === 1) {
+            const outputModule = renderQueueItem.outputModule(1).file;
+            if (outputModule != null) {
+                const outputFileNameNoRegex = getFileNameNoRegex(outputModule.name);
+                const extension = getFileExtension(outputFileNameNoRegex);
+                return isImageOutput(extension);
+            }
+        }
+        return false
+    }
+
+
     // Add Timeouts settings group
     const timeoutsPanel = settingsGroup.add("panel", undefined, "Timeouts");
     timeoutsPanel.orientation = "column";
@@ -3048,128 +3119,6 @@ function buildUI(thisObj) {
     }
     taskRunMinutesInput.onChange = onTaskRunMinutesChanged
 
-    // Disable max CPU percentage textbox when multi frame rendering is disabled
-    function onMfrCheckBoxClicked() {
-        const isMfrChecked = mfrCheckBox.value;
-        var settingsStateValue = false
-        if (!isMfrChecked) {
-            maxCpuUsagePercentageTextBox.text = "N/A";
-            app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING, "false");
-            settingsStateValue = false
-        } else {
-            maxCpuUsagePercentageTextBox.text = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MAX_CPU_USAGE_PERCENTAGE);
-            app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_MULTI_FRAME_RENDERING, "true");
-            settingsStateValue = true
-        }
-
-        maxCpuUsagePercentageTextBox.enabled = isMfrChecked;
-
-        const selectionItem = dcUtil.getSelection(list);
-        if (selectionItem) {
-            uiSettingsState.get(selectionItem.compId).setMultiFrameRendering(settingsStateValue)
-        }
-    }
-    mfrCheckBox.onClick = onMfrCheckBoxClicked;
-
-    // Add Timeouts settings group
-    const timeoutsPanel = settingsGroup.add("panel", undefined, "Timeouts");
-    timeoutsPanel.orientation = "column";
-    timeoutsPanel.alignment = ['fill', 'top'];
-    timeoutsPanel.alignChildren = ['left', 'center'];
-    timeoutsPanel.margins = 5;
-
-    // Task run timeout
-    const taskRunGroup = timeoutsPanel.add("group");
-    taskRunGroup.orientation = "row";
-    taskRunGroup.alignment = ['fill', 'top'];
-    taskRunGroup.alignChildren = ['left', 'center'];
-
-    const taskRunCheckbox = taskRunGroup.add("checkbox", undefined, "Task run");
-    taskRunCheckbox.value = app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_TASK_RUN_TIMEOUT_ENABLED);
-
-    const taskRunDaysGroup = taskRunGroup.add("group", undefined, "");
-    const taskRunDaysInput = taskRunDaysGroup.add("edittext", undefined, app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_TASK_RUN_TIMEOUT_DAYS));
-    taskRunDaysInput.characters = 3;
-    taskRunDaysGroup.add("statictext", undefined, "days");
-
-    const taskRunHoursGroup = taskRunGroup.add("group", undefined, "");
-    const taskRunHoursInput = taskRunHoursGroup.add("edittext", undefined, app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_TASK_RUN_TIMEOUT_HOURS));
-    taskRunHoursInput.characters = 3;
-    taskRunHoursGroup.add("statictext", undefined, "hours");
-
-    const taskRunMinutesGroup = taskRunGroup.add("group", undefined, "");
-    const taskRunMinutesInput = taskRunMinutesGroup.add("edittext", undefined, app.settings.getSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_TASK_RUN_TIMEOUT_MINUTES));
-    taskRunMinutesInput.characters = 3;
-    taskRunMinutesGroup.add("statictext", undefined, "minutes");
-
-    // Function to validate timeout values
-    function validateTimeoutValues() {
-        // Check if all values are zero when checkbox is checked
-        if (taskRunCheckbox.value) {
-            var days = parseInt(taskRunDaysInput.text) || 0;
-            var hours = parseInt(taskRunHoursInput.text) || 0;
-            var minutes = parseInt(taskRunMinutesInput.text) || 0;
-
-            if (days === 0 && hours === 0 && minutes === 0) {
-                adcAlert("Timeout cannot be set to zero. Please enter a value greater than zero for days, hours, or minutes.", true);
-                // Set days back to default value of 2
-                taskRunDaysInput.text = "2";
-                app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_TASK_RUN_TIMEOUT_DAYS, "2");
-                return false;
-            }
-        }
-        return true;
-    }
-
-    // Add input validation and save values to settings
-    taskRunCheckbox.onClick = function() {
-        app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_TASK_RUN_TIMEOUT_ENABLED, dcUtil.toBooleanString(this.value));
-        if (this.value) {
-            validateTimeoutValues();
-        }
-    };
-
-    taskRunDaysInput.onChange = function() {
-        this.text = this.text.replace(/[^0-9]/g, "");
-        if (this.text === "") this.text = "0";
-        app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_TASK_RUN_TIMEOUT_DAYS, this.text);
-        validateTimeoutValues();
-    };
-
-    taskRunHoursInput.onChange = function() {
-        this.text = this.text.replace(/[^0-9]/g, "");
-        if (this.text === "") this.text = "0";
-        app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_TASK_RUN_TIMEOUT_HOURS, this.text);
-        validateTimeoutValues();
-    };
-
-    taskRunMinutesInput.onChange = function() {
-        this.text = this.text.replace(/[^0-9]/g, "");
-        if (this.text === "") this.text = "0";
-        app.settings.saveSetting(DEADLINECLOUD_SUBMITTER_SETTINGS, DEADLINECLOUD_TASK_RUN_TIMEOUT_MINUTES, this.text);
-        validateTimeoutValues();
-    };
-
-    // If an image sequence was selected, enable frames per task textbox. Otherwise disable it.
-    function isFramesPerTaskEnabled(selection) {
-        if (selection == null) {
-            return false;
-        }
-        const renderQueueIndex = selection.renderQueueIndex;
-        const rqi = app.project.renderQueue.item(renderQueueIndex);
-        // Currently we only support one output modele. We have sufficient error handling
-        // after submit button is clicked, so this is a sufficient for now
-        if (rqi.numOutputModules == 1) {
-            var outputModule = rqi.outputModule(1).file;
-            if (outputModule != null) {
-                const outputFileNameNoRegex = getFileNameNoRegex(outputModule.name);
-                const extension = getFileExtension(outputFileNameNoRegex);
-                return isImageOutput(extension);
-            }
-        }
-        return false
-    }
-
     // Check for duplicate names
     function checkForInvalidCompositionNames(selection) {
         const names = [];
@@ -3202,11 +3151,14 @@ function buildUI(thisObj) {
             if (mfrCheckBox.value) {
                 maxCpuUsagePercentage = parseInt(maxCpuUsagePercentageTextBox.text)
             }
+            if (checkForInvalidCompositionNames(list.selection)) {
+                return
+            }
             if (taskRunCheckbox.value) {
-                SubmitSelection(list.selection, parseInt(framesPerTaskTextBox.text), multiFrameRendering, maxCpuUsagePercentage, parseInt(taskRunDaysInput.text), parseInt(taskRunHoursInput.text), parseInt(taskRunMinutesInput.text));
+                SubmitSelection(list.selection, uiSettingsState, parseInt(framesPerTaskTextBox.text), multiFrameRendering, maxCpuUsagePercentage, parseInt(taskRunDaysInput.text), parseInt(taskRunHoursInput.text), parseInt(taskRunMinutesInput.text));
             }
             else {
-                SubmitSelection(list.selection, parseInt(framesPerTaskTextBox.text), multiFrameRendering, maxCpuUsagePercentage, 2, 0, 0);
+                SubmitSelection(list.selection, uiSettingsState, parseInt(framesPerTaskTextBox.text), multiFrameRendering, maxCpuUsagePercentage, 2, 0, 0);
             }
             list.selection = null;
         }

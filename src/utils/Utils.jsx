@@ -749,13 +749,6 @@ function __generateUtil() {
         return $.getenv("USERPROFILE");
     }
 
-    function getAEVersion() {
-        /* Return After Effects version as float. */
-        const versionAsString = app.version.substring(0, 4);
-        const version = parseFloat(versionAsString);
-        return version
-    }
-
     function validateTimeoutValues(enabled, daysInput, hoursInput, minutesInput) {
         if (enabled) {
             var days = parseInt(daysInput.text) || 0;
@@ -775,6 +768,13 @@ function __generateUtil() {
         for (var s=0;s<list.selection.length;s++) {
             return list.selection[s];
         }
+    }
+
+    function getAEVersion() {
+        /* Return After Effects version as float. */
+        const versionAsString = app.version.substring(0, 4);
+        const version = parseFloat(versionAsString);
+        return version
     }
 
     return {
@@ -809,9 +809,9 @@ function __generateUtil() {
         "removePercentageFromFileName": removePercentageFromFileName,
         "getTempFile": getTempFile,
         "getUserDirectory": getUserDirectory,
-        "getAEVersion": getAEVersion,
         "validateTimeoutValues": validateTimeoutValues,
         "getSelection": getSelection,
+        "getAEVersion": getAEVersion,
         "getTempFolder": getTempFolder
     }
 }
