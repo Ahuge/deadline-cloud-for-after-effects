@@ -30,7 +30,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "deadline >= 0.49,< 0.51",
+    "deadline >= 0.49,< 0.52",
 ]
 
 [project.urls]
@@ -71,6 +71,7 @@ include = [
 # Can be removed or set to true once we are v1
 major_on_zero = false
 tag_format = "{version}"
+allow_zero_version = true
 
 [tool.semantic_release.commit_parser_options]
 allowed_tags = [

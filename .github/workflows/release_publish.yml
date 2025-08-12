@@ -27,29 +27,43 @@ jobs:
     with:
       tag: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || '' }}
 
-  BuildAndStageInstallers:
-    needs: TagRelease
-    uses: aws-deadline/.github/.github/workflows/reusable_build_and_stage_installers.yml@mainline
+  BuildInstaller:
+    needs: [TagRelease]
+    uses: aws-deadline/.github/.github/workflows/reusable_build_installers.yml@mainline
     secrets: inherit
     permissions:
       id-token: write
       contents: read
     with:
-      project_name: ${{ github.event.repository.name }}
-      tag: ${{ needs.TagRelease.outputs.tag }}
+      ref_type: tags
+      ref: ${{ needs.TagRelease.outputs.tag }}
       oses: "['Windows', 'MacOS']"
+      environment: release
+      project_name: ${{ github.event.repository.name }}
 
   IsCondaReady:
-    needs: BuildAndStageInstallers
+    needs: BuildInstaller
     runs-on: ubuntu-latest
     environment: release
     name: “Is the Conda Package available in all ProdWaves and have you ran any required manual tests?”
     steps:
       - run: |
          :
+
+  ReleaseInstaller:
+    needs: [TagRelease, IsCondaReady]
+    uses: aws-deadline/.github/.github/workflows/reusable_release_installers.yml@mainline
+    secrets: inherit
+    permissions:
+      id-token: write
+      contents: read
+    with:
+      tag: ${{ needs.TagRelease.outputs.tag }}
+      oses: "['Windows', 'MacOS']"
+      project_name: ${{ github.event.repository.name }}
           
   Release:
-    needs: [TagRelease, IsCondaReady]
+    needs: [TagRelease, ReleaseInstaller]
     runs-on: ubuntu-latest
     name: Release
     permissions:
@@ -65,7 +79,13 @@ jobs:
           ref: ${{env.TAG}}
           fetch-depth: 0
           token: ${{ secrets.CI_TOKEN }}
-
+      - name: Generate Release Notes
+        run: |
+          {
+            echo 'RELEASE_NOTES<<EOF'
+            python .github/scripts/get_latest_changelog.py
+            echo EOF
+          } >> $GITHUB_ENV
       - name: PushRelease
         env:
           GH_TOKEN: ${{ secrets.CI_TOKEN }}

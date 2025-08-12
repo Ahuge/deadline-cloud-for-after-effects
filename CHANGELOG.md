@@ -1,3 +1,34 @@
+## 0.3.1 (2025-07-29)
+
+
+
+### Bug Fixes
+* update start and end frame to reflect frame numbers accurately (#228) ([`329b5b1`](https://github.com/aws-deadline/deadline-cloud-for-after-effects/commit/329b5b1633fff34e266d84dc27eaa31d39907ee5))
+
+## 0.3.0 (2025-07-15)
+
+
+### Features
+* add timeout checkbox for customers to set a timeout number for openjd (#224) ([`307809c`](https://github.com/aws-deadline/deadline-cloud-for-after-effects/commit/307809cdc1393b5334c5e57fd81ee6e43a84ebe1))
+
+### Bug Fixes
+* change the error handling for aerender cmd to fail the task when the aerender Error gets thrown (#223) ([`2d06a57`](https://github.com/aws-deadline/deadline-cloud-for-after-effects/commit/2d06a57191595d94160de98fe0a425c1ffd2aed7))
+
+## 0.2.7 (2025-07-08)
+
+
+
+### Bug Fixes
+* added missing build changes to DeadlineCloudSubmitter.jsx (#220) ([`5843506`](https://github.com/aws-deadline/deadline-cloud-for-after-effects/commit/5843506890e04af3a2f8d62a6f45f50a5e0c11a8))
+* refactor SUPPORTED_VERSIONS const declaration and add ignore warning functionality for version mismatch (#216) ([`1606c82`](https://github.com/aws-deadline/deadline-cloud-for-after-effects/commit/1606c82f5773e63dc668a30a223efe735b684775))
+
+## 0.2.6 (2025-06-24)
+
+
+
+### Bug Fixes
+* including setting minor version for CondaPackages field and added version mismatch warnings (#204) ([`17dfb3e`](https://github.com/aws-deadline/deadline-cloud-for-after-effects/commit/17dfb3e80a0ab518d4227b96f91f82f739fd34bd))
+
 ## 0.2.5 (2025-06-04)
 
 

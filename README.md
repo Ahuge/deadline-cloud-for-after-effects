@@ -104,10 +104,11 @@ The submitter includes a folder `DeadlineCloudSubmitter_Assets` and a file `Dead
 1. Select your composition you want to render click `Submit` to submit a render job. Here are some settings you can set:
    1. (Optional) For image sequences output types you can specify the number of frames per task so that the job created by the After Effects submitter will create the tasks based on the number and then Deadline Cloud will assign the tasks to available workers to delegate the load.
    1. You can also specify multi-frame rendering with your job submission. If you do, you can also specify the max percentage of CPU usage you wish to allocate towards rendering in case you would like to limit it to allow other background applications or processes to run smoothly. For more information about multi-frame rendering, visit Adobe's website [here](https://helpx.adobe.com/after-effects/using/multi-frame-rendering.html).
-1. If you see a warning popup window with "You are about to run the script contained in file", you can suppress the warning by following the instruction in the popup or the instructions above to disable warnings when submitting jobs.
-1. Install any python libraries if prompted and press the Login button in the bottom left if you are not logged in.
-1. Set the farm and queue you are submitting to with the Settings button, and click **Submit**.
-1. If you're running the submitter and hitting error messages, scroll down to the Troubleshooting section for more guidance.
+   1. You need to set up timeout days, hours and minutes to avoid the task gets stuck forever. The default timeout is 2 days.
+2. If you see a warning popup window with "You are about to run the script contained in file", you can suppress the warning by following the instruction in the popup or the instructions above to disable warnings when submitting jobs.
+3. Install any python libraries if prompted and press the Login button in the bottom left if you are not logged in.
+4. Set the farm and queue you are submitting to with the Settings button, and click **Submit**.
+5. If you're running the submitter and hitting error messages, scroll down to the Troubleshooting section for more guidance.
 
 **Note**: The After Effects submitter calls the Deadline GUI Submitter to complete job submission. If you hit any issues on the GUI submitter, please refer to [deadline-cloud](https://github.com/aws-deadline/deadline-cloud) library for help.
 
@@ -146,6 +147,17 @@ user@7cf34df03377 ~ % where deadline
 1. Then follow the troubleshooting steps above for Python for your respective OS and verify that deadline is on your $PATH.
 1. If you have multiple Python installations and manage Deadline via Pip, verify that the Python on your $PATH is the Python that managed your Deadline installation. This can be done by running `python -m pip list` and `python3 -m pip list` to verify this.
 
+### Warning: Unsupported After Effects Version Detected
+
+This means you are using an After Effects version that is not available in the deadline-cloud Conda channel, For example, if you're using After Effects 24.3, but the channel only supports 24.6.
+
+If you continue, the default major version in use locally will be filled in the CondaPackages field, but your job submission may fail unless you have created a custom Conda channel with your specific After Effects version and included this channel in the CondaChannels parameter
+
+To resolve this, you can either:
+1. Switch to a supported After Effects version,
+2. Acknowledge the warning and proceed (at your own risk), or
+3. Create a custom Conda channel with your desired After Effects version
+
 
 ### After submission on Windows, a command prompt screen flashes open and close and submitter GUI doesn't pop open
 1. Go to the Windows Start menu and searching for "Manage app execution aliases". Then disable the `python3.exe` and `python.exe` aliases manually and retry submission.
@@ -171,7 +183,7 @@ To install fonts for non-Adobe apps in Creative Cloud:
 
 ## Setting up After Effects with your Deadline Cloud Farm
 
-After Effects 24.6.4, 25.1, and 25.2.2 conda packages are now available in AWS Deadline Cloud Service Managed Fleet (See this [link](https://docs.aws.amazon.com/deadline-cloud/latest/userguide/create-queue-environment.html) for more information). If you would like to build a conda channel that contains different After Effects conda package, please follow
+After Effects 24.6, 25.1, and 25.2 conda packages are available in AWS Deadline Cloud Service Managed Fleet (See this [link](https://docs.aws.amazon.com/deadline-cloud/latest/userguide/create-queue-environment.html) for more information). If you would like to build a conda channel that contains different After Effects conda package, please follow
 [the instruction](https://docs.aws.amazon.com/deadline-cloud/latest/developerguide/configure-jobs-s3-channel.html).
 You can also use After Effects conda recipe in
 [deadline-cloud-sample package](https://github.com/aws-deadline/deadline-cloud-samples/tree/mainline/conda_recipes/aftereffects-25.0)
